@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>IT Dashboard</title>
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="card shadow p-4" style="width: 100%; max-width: 380px;">
+        <h4 class="text-center text-primary fw-bold mb-4">🖥️ IT Dashboard</h4>
+
+        {% if error %}
+        <div class="alert alert-danger py-2 small">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Username</label>
+                <input type="text" name="username" required class="form-control">
+            </div>
+            <div class="mb-4">
+                <label class="form-label small fw-semibold">Password</label>
+                <input type="password" name="password" required class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+    </div>
+</body>
+</html>

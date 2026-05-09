@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+venv/
+local.db
+bot.log
+*.log
+*.txt.txt
