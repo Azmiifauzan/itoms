@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: itoms_bot
+    command: python bot.py
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  dashboard:
+    build: .
+    container_name: itoms_dashboard
+    command: python dashboard/app.py
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
