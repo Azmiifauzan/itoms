@@ -1,89 +1,194 @@
-# Bot Telegram POS + Adempiere
+# ITOMS — IT Operations Management System
 
-Bot untuk membuat user POS dari data HRIS dan me-restart service Adempiere via Windows.
+A comprehensive IT operations management system built for retail/franchise businesses. Combines a **Telegram Bot** for real-time support operations with a **Web Dashboard** for task management, complaint tracking, and team performance monitoring.
 
-## Struktur Project
+---
+
+## Features
+
+### Telegram Bot
+- **User Registration** — Create POS system users directly from HRIS database with a single command
+- **Multi-server Management** — Start, stop, and restart Adempiere ERP services via SSH across multiple servers
+- **Broadcast Messaging** — Send announcements to all branch group chats simultaneously
+- **Complaint Tracking** — Automatically detects and logs support complaints from group chats
+- **Response Monitoring** — Tracks which IT staff respond to complaints and logs their activity
+- **Whitelist Access Control** — Role-based access management via Telegram User ID
+- **User Management** — Add/remove authorized users directly from Telegram
+
+### Web Dashboard
+- **Multi-role Access** — Manager, Head of Support, IT Support, and Programmer roles
+- **Task Management** — Create, assign, track, and update tasks with progress percentage
+- **Team Performance** — Leaderboard ranking of support staff based on complaint response activity
+- **Complaint Analytics** — Daily complaint count and response tracking
+- **User Management** — Full CRUD for dashboard users with role assignment
+- **Telegram Integration** — Notification system linked to Telegram User IDs
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Bot Framework | Python, python-telegram-bot |
+| Web Framework | Python, Flask |
+| Databases | PostgreSQL (HRIS, POS/Webserv), SQLite (local) |
+| SSH Management | Paramiko |
+| Containerization | Docker, Docker Compose |
+| Frontend | HTML, Bootstrap 5 |
+| Version Control | Git, GitHub |
+
+---
+
+## System Architecture
 
 ```
-telegram_bot/
-├── bot.py                  # Entry point
-├── config.py               # Load konfigurasi dari .env
-├── requirements.txt
-├── .env                    # Konfigurasi (buat dari .env.example)
-├── .env.example
-├── db/
-│   ├── connections.py      # 3 koneksi database
-│   ├── hris.py             # Query HRIS
-│   └── pos.py              # Insert user POS (⚠ sesuaikan schema dulu)
-└── handlers/
-    └── commands.py         # Semua command bot
+Telegram Groups
+      │
+      ▼
+Telegram Bot (Python)
+      │
+      ├── HRIS Database (PostgreSQL) ──► Read employee data
+      ├── POS Database (PostgreSQL)  ──► Create POS users
+      ├── Adempiere Servers (SSH)    ──► Manage ERP services
+      └── Local Database (SQLite)   ──► Whitelist, tasks, complaints
+                                              │
+                                              ▼
+                                    Web Dashboard (Flask)
+                                              │
+                                    ┌─────────┴──────────┐
+                                 Manager           IT Support
+                               (full access)    (own tasks only)
 ```
 
-## Setup
+---
 
-### 1. Install dependencies
+## Installation
+
+### Prerequisites
+- Python 3.11+
+- Docker & Docker Compose
+- PostgreSQL access (HRIS & POS databases)
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/Azmiifauzan/itoms.git
+cd itoms
+```
+
+### 2. Configure environment
+```bash
+cp .env.example .env
+# Fill in your credentials in .env
+```
+
+### 3. Run with Docker
+```bash
+docker compose up -d
+```
+
+### 4. Run without Docker
 ```bash
 pip install -r requirements.txt
+python bot.py           # Run Telegram bot
+python dashboard/app.py # Run web dashboard
 ```
 
-### 2. Buat file .env
-```bash
-copy .env.example .env
-# Isi semua value di .env
+---
+
+## Configuration
+
+Copy `.env.example` to `.env` and fill in the following:
+
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token
+ADMIN_USER_IDS=your_telegram_user_id
+
+HRIS_HOST=your_hris_db_host
+HRIS_DATABASE=your_hris_db_name
+HRIS_USER=your_hris_db_user
+HRIS_PASSWORD=your_hris_db_password
+
+WEBSERV_HOST=your_pos_db_host
+WEBSERV_DATABASE=your_pos_db_name
+WEBSERV_USER=your_pos_db_user
+WEBSERV_PASSWORD=your_pos_db_password
 ```
 
-### 3. Cari Telegram User ID kamu
-Jalankan bot dulu, lalu kirim `/myid` ke bot.
-Salin User ID-nya, isi ke `ALLOWED_USER_IDS` di `.env`.
+---
 
-### 4. Sesuaikan schema POS
-Sebelum `/daftar` bisa jalan, perlu tahu struktur tabel user di DB webserv:
-1. Jalankan bot
-2. Kirim `/cek_schema` ke bot
-3. Lihat output-nya, catat nama tabel dan kolom
-4. Edit `db/pos.py` bagian ini:
+## Bot Commands
 
-```python
-POS_USER_TABLE  = "public.ad_user"   # ganti nama tabel
-COL_USERNAME    = "username"          # kolom username
-COL_NAME        = "name"              # kolom nama
-COL_PASSWORD    = "password"          # kolom password
-DEFAULT_PASSWORD = "Password123!"     # password default
-```
-
-5. Sesuaikan juga fungsi `hash_password()` kalau POS pakai MD5 atau bcrypt.
-
-### 5. Jalankan bot
-```bash
-python bot.py
-```
-
-## Command
-
-| Command | Akses | Fungsi |
+| Command | Access | Description |
 |---|---|---|
-| `/start` | Semua | Lihat daftar command |
-| `/myid` | Semua | Cek Telegram User ID sendiri |
-| `/daftar <noabsen>` | Whitelist | Buat user POS dari HRIS |
-| `/restart` | Whitelist | Restart service Adempiere |
-| `/status` | Whitelist | Cek koneksi semua database |
-| `/cek_schema` | Whitelist | Lihat struktur tabel POS (sementara) |
+| `/start` | All | Show available commands |
+| `/myid` | All | Get your Telegram User ID |
+| `/daftar <employee_no>` | Whitelist | Register employee as POS user |
+| `/restart_adempiere` | Whitelist | Restart Adempiere service |
+| `/stop_adempiere` | Whitelist | Stop Adempiere service |
+| `/start_adempiere` | Whitelist | Start Adempiere service |
+| `/share <message>` | Whitelist | Broadcast message to all groups |
+| `/status` | Whitelist | Check all database connections |
+| `/adduser <id> <name>` | Admin | Add user to whitelist |
+| `/removeuser <id>` | Admin | Remove user from whitelist |
+| `/listuser` | Admin | List all whitelisted users |
+| `/cekid` | Admin | Reply a message to get user ID |
 
-## Restart Adempiere di Windows
+---
 
-Bot menggunakan perintah `sc stop` dan `sc start` untuk restart service Windows.
-Pastikan:
-- Nama service Adempiere sudah benar (cek di `services.msc`)
-- Isi `ADEMPIERE_SERVICE_NAME` di `.env`
-- Bot dijalankan dengan akun yang punya hak akses ke service tersebut
+## Dashboard Roles
 
-Kalau perlu akses admin, jalankan terminal sebagai Administrator.
+| Role | Permissions |
+|---|---|
+| **Manager** | Full access — view all tasks, manage users, view all analytics |
+| **Head of Support** | View & manage all support tasks, assign to team members |
+| **IT Support** | View & update own tasks only, log progress |
+| **Programmer** | View & update own tasks only, log progress |
 
-## Jalankan sebagai Background Service (Windows)
+---
 
-Gunakan NSSM (Non-Sucking Service Manager):
-```bash
-nssm install TelegramBot "C:\Python\python.exe" "C:\path\to\telegram_bot\bot.py"
-nssm set TelegramBot AppDirectory "C:\path\to\telegram_bot"
-nssm start TelegramBot
+## Project Structure
+
 ```
+itoms/
+├── bot.py                    # Telegram bot entry point
+├── config.py                 # Configuration loader
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── db/
+│   ├── connections.py        # Database connections (HRIS, POS, Adempiere)
+│   ├── hris.py               # HRIS queries
+│   ├── pos.py                # POS user operations
+│   └── local.py              # SQLite operations (whitelist, tasks, complaints)
+├── handlers/
+│   ├── commands.py           # Telegram command handlers
+│   └── adempiere.py          # Adempiere SSH management
+└── dashboard/
+    ├── app.py                # Flask application
+    ├── auth.py               # Authentication
+    ├── notif.py              # Telegram notifications
+    ├── routes/
+    │   ├── manager.py
+    │   ├── support.py
+    │   └── programmer.py
+    └── templates/
+        ├── base.html
+        ├── login.html
+        ├── dashboard.html
+        ├── task.html
+        ├── users.html
+        └── profile.html
+```
+
+---
+
+## License
+
+MIT License — feel free to use and modify for your own projects.
+
+---
+
+## Author
+
+**Azmii Fauzan** — IT Support turned Developer  
+GitHub: [@Azmiifauzan](https://github.com/Azmiifauzan)
