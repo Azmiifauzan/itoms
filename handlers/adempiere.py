@@ -34,7 +34,6 @@ def ssh_exec(server_key: str, command: str) -> tuple[str, str]:
 
 
 def build_server_keyboard(action: str) -> InlineKeyboardMarkup:
-    """Buat keyboard pilihan server."""
     buttons = []
     for key, server in Config.SSH_SERVERS.items():
         buttons.append([
@@ -109,7 +108,7 @@ async def adempiere_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     label, command = action_map[action]
 
     await query.edit_message_text(
-        f"{label} <b>{server['label']}</b>...\n⏳ Mohon tunggu.",
+        f"{label} <b>{server['label']}</b>...\n⏳ Sabar lagi di restartin.",
         parse_mode="HTML",
     )
 
