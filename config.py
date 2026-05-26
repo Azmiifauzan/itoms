@@ -62,9 +62,3 @@ class Config:
             "password": os.getenv("SSH_ADEMPIERE_158_PASS", ""),
         },
     }
-    # Adempiere DB
-    ADEMPIERE_HOST: str     = os.getenv("ADEMPIERE_HOST", "")
-    ADEMPIERE_PORT: int     = int(os.getenv("ADEMPIERE_PORT", 5432))
-    ADEMPIERE_DATABASE: str = os.getenv("ADEMPIERE_DATABASE", "")
-    ADEMPIERE_USER: str     = os.getenv("ADEMPIERE_USER", "")
-    ADEMPIERE_PASSWORD: str = os.getenv("ADEMPIERE_PASSWORD", "")

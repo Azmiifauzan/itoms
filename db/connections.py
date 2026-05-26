@@ -35,16 +35,16 @@ def get_webserv_connection():
     )
 
 
-def get_adempiere_connection():
-    """Koneksi ke database Adempiere."""
-    return psycopg2.connect(
-        host=Config.ADEMPIERE_HOST,
-        port=Config.ADEMPIERE_PORT,
-        database=Config.ADEMPIERE_DATABASE,
-        user=Config.ADEMPIERE_USER,
-        password=Config.ADEMPIERE_PASSWORD,
-        connect_timeout=10,
-    )
+#def get_adempiere_connection():
+#    """Koneksi ke database Adempiere."""
+#    return psycopg2.connect(
+#        host=Config.ADEMPIERE_HOST,
+#        port=Config.ADEMPIERE_PORT,
+#        database=Config.ADEMPIERE_DATABASE,
+#        user=Config.ADEMPIERE_USER,
+#        password=Config.ADEMPIERE_PASSWORD,
+#        connect_timeout=10,
+#    )
 
 
 def test_all_connections() -> dict:
@@ -53,7 +53,7 @@ def test_all_connections() -> dict:
     for name, fn in [
         ("HRIS", get_hris_connection),
         ("Webserv/POS", get_webserv_connection),
-        ("Adempiere", get_adempiere_connection),
+#        ("Adempiere", get_adempiere_connection),
     ]:
         try:
             conn = fn()
