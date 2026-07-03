@@ -98,6 +98,16 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now','localtime'))
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS jadwal (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                nama        TEXT NOT NULL,
+                tanggal     TEXT NOT NULL,
+                tipe        TEXT NOT NULL CHECK(tipe IN ('oc', 'piket', 'off')),
+                created_at  TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(nama, tanggal, tipe)
+            )
+        """)
         conn.commit()
     logger.info(f"[DB Local] SQLite siap di {DB_PATH}")
 
@@ -146,6 +156,71 @@ def list_users() -> list[dict]:
             "SELECT user_id, nama, added_by, added_at FROM whitelist ORDER BY added_at"
         ).fetchall()
         return [dict(r) for r in rows]
+
+# ──────────────────────────────────────────
+# Jadwal operations
+# ──────────────────────────────────────────
+
+def get_jadwal_by_tanggal(tanggal: str) -> list[dict]:
+    """Ambil semua jadwal di tanggal tertentu."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM jadwal WHERE tanggal = ? ORDER BY tipe",
+            (tanggal,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_jadwal_by_bulan(tahun: int, bulan: int) -> list[dict]:
+    """Ambil semua jadwal dalam satu bulan."""
+    prefix = f"{tahun}-{bulan:02d}"
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM jadwal WHERE tanggal LIKE ? ORDER BY tanggal, tipe",
+            (f"{prefix}%",)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def upsert_jadwal(nama: str, tanggal: str, tipe: str):
+    """Insert atau update jadwal."""
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO jadwal (nama, tanggal, tipe)
+            VALUES (?, ?, ?)
+            ON CONFLICT(nama, tanggal, tipe) DO NOTHING
+        """, (nama, tanggal, tipe))
+        conn.commit()
+
+
+def delete_jadwal(jadwal_id: int):
+    """Hapus jadwal berdasarkan ID."""
+    with get_conn() as conn:
+        conn.execute("DELETE FROM jadwal WHERE id = ?", (jadwal_id,))
+        conn.commit()
+
+
+def get_jadwal_hari_ini(tipe: str) -> list[dict]:
+    """Ambil jadwal hari ini berdasarkan tipe (oc/piket)."""
+    from datetime import date
+    today = date.today().strftime("%Y-%m-%d")
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT j.*, w.telegram_user_id FROM jadwal j "
+            "LEFT JOIN whitelist w ON j.nama = w.nama_jadwal "
+            "WHERE j.tanggal = ? AND j.tipe = ?",
+            (today, tipe)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_all_nama_jadwal() -> list[str]:
+    """Ambil semua nama unik yang ada di jadwal."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT nama FROM jadwal ORDER BY nama"
+        ).fetchall()
+        return [r["nama"] for r in rows]
 
 # ──────────────────────────────────────────
 # Komplain operations

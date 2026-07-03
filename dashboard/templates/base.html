@@ -17,6 +17,7 @@
             {% endif %}
             <a href="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/profile" class="text-white small text-decoration-none">Profile</a>
             <span class="text-white small">{{ session.nama }}</span>
+            <a href="/jadwal/" class="text-white small text-decoration-none">Jadwal</a>
             <a href="/logout" class="btn btn-light btn-sm">Logout</a>
         </div>
     </nav>
