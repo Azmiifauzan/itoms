@@ -63,7 +63,7 @@ class Config:
         },
         "118": {
             "label": "Adempiere Curry",
-            "hostname": os.getenv("SSH_AEMPIERE_118_HOST", ""),
+            "hostname": os.getenv("SSH_ADEMPIERE_118_HOST", ""),
             "username": os.getenv("SSH_ADEMPIERE_118_USER", "root"),
             "password": os.getenv("SSH_ADEMPIERE_118_PASS",""),
         },
