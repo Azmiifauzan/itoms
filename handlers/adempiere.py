@@ -24,6 +24,8 @@ def ssh_exec(server_key: str, command: str) -> tuple[str, str]:
             username=server["username"],
             password=server["password"],
             timeout=15,
+            look_for_keys=False,
+            allow_agent=False,
         )
         _, stdout, stderr = client.exec_command(command, timeout=30)
         out = stdout.read().decode().strip()
