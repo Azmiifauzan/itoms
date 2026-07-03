@@ -56,9 +56,15 @@ class Config:
             "password": os.getenv("SSH_ADEMPIERE_148_PASS", ""),
         },
         "158": {
-            "label": "Adempiere 158",
+            "label": "Adempiere 158 (5555 Luar)",
             "hostname": os.getenv("SSH_ADEMPIERE_158_HOST", ""),
             "username": os.getenv("SSH_ADEMPIERE_158_USER", "root"),
             "password": os.getenv("SSH_ADEMPIERE_158_PASS", ""),
+        },
+        "118": {
+            "label": "Adempiere Curry",
+            "hostname": os.getenv("SSH_AEMPIERE_118_HOST", ""),
+            "username": os.getenv("SSH_ADEMPIERE_118_USER", "root"),
+            "password": os.getenv("SSH_ADEMPIERE_118_PASS",""),
         },
     }
