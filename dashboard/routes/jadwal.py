@@ -9,7 +9,7 @@ import requests
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, jsonify
-from dashboard.atuh import login_required, get_current_user
+from dashboard.auth import login_required, get_current_user
 from db.local import get_conn, upsert_jadwal, delete_jadwal, get_jadwal_by_bulan, get_all_nama_jadwal
 
 jadwal_bp = Blueprint("jadwal", __name__, url_prefix="/jadwal")
