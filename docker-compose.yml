@@ -1,8 +1,11 @@
 services:
   bot:
-    build: .
+    build:
+      context: .
+      network: host
     container_name: itoms_bot
     command: python bot.py
+    network_mode: host
     volumes:
       - .:/app
     env_file:
@@ -10,14 +13,14 @@ services:
     restart: always
 
   dashboard:
-    build: .
+    build:
+      context: .
+      network: host
     container_name: itoms_dashboard
     command: gunicorn -w 2 -b 0.0.0.0:7770 "dashboard.app:app"
+    network_mode: host
     volumes:
       - .:/app
     env_file:
       - .env
-    ports:
-      - "7770:7770"
     restart: always
-
