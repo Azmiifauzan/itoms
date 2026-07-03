@@ -1,128 +1,272 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_style %}
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+@media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .stat-grid { grid-template-columns: 1fr 1fr; } }
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: box-shadow .2s, transform .15s, border-color .15s;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+.stat-card.total::before { background: var(--primary); }
+.stat-card.open::before  { background: var(--warning); }
+.stat-card.prog::before  { background: var(--cyan); }
+.stat-card.done::before  { background: var(--success); }
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.stat-card.active-filter { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.stat-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
+.stat-num   { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+.stat-num.total { color: var(--primary); }
+.stat-num.open  { color: var(--warning); }
+.stat-num.prog  { color: var(--cyan); }
+.stat-num.done  { color: var(--success); }
+.stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 28px; opacity: .12; }
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 24px;
+    align-items: start;
+}
+@media (max-width: 1024px) { .content-grid { grid-template-columns: 1fr; } }
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.section-title { font-size: 15px; font-weight: 600; }
+
+/* Task Cards */
+.task-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    transition: box-shadow .2s, transform .15s, border-color .15s;
+    cursor: default;
+}
+.task-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: #CBD5E1; }
+.task-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    transition: color .15s;
+}
+.task-title:hover { color: #1D4ED8; }
+.task-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.task-footer { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.progress-wrap { flex: 1; }
+.progress-bar-bg {
+    height: 5px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width .4s ease;
+}
+.progress-bar-fill.done  { background: var(--success); }
+.progress-bar-fill.prog  { background: var(--primary); }
+.progress-bar-fill.empty { background: var(--border); }
+.progress-pct { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+
+/* Ranking */
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+}
+.ranking-item:last-child { border-bottom: none; }
+.ranking-item:hover { background: var(--bg-hover); }
+.rank-medal { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+.rank-num { font-size: 12px; font-weight: 600; color: var(--text-muted); width: 24px; text-align: center; flex-shrink: 0; }
+.rank-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+}
+.rank-name { flex: 1; font-size: 13px; font-weight: 500; }
+.rank-score { font-size: 13px; font-weight: 700; color: var(--primary); }
+
+/* Komplain card */
+.komplain-card {
+    background: linear-gradient(135deg, #DC2626, #EF4444);
+    border-radius: var(--radius);
+    padding: 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.komplain-card::after {
+    content: '🚨';
+    position: absolute;
+    right: 16px; bottom: 12px;
+    font-size: 48px;
+    opacity: .2;
+}
+.komplain-num { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+.komplain-label { font-size: 12px; opacity: .85; margin-top: 4px; }
+.komplain-sub { font-size: 11px; opacity: .6; margin-top: 2px; }
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+.empty-state-icon { font-size: 36px; margin-bottom: 8px; opacity: .4; }
+{% endblock %}
+
 {% block content %}
 
-<!-- Stats -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm" style="cursor:pointer" onclick="filterTask('all')">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-primary">{{ stats.total_task }}</div>
-                <div class="small text-muted">Total Task</div>
-            </div>
-        </div>
+<!-- Stat Cards -->
+<div class="stat-grid">
+    <div class="stat-card total" onclick="filterTask('all')" id="filter-all">
+        <div class="stat-label">Total Task</div>
+        <div class="stat-num total">{{ stats.total_task }}</div>
+        <div class="stat-icon">📋</div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm" style="cursor:pointer" onclick="filterTask('open')">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-warning">{{ stats.open }}</div>
-                <div class="small text-muted">Open</div>
-            </div>
-        </div>
+    <div class="stat-card open" onclick="filterTask('open')" id="filter-open">
+        <div class="stat-label">Open</div>
+        <div class="stat-num open">{{ stats.open }}</div>
+        <div class="stat-icon">⏳</div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm" style="cursor:pointer" onclick="filterTask('on_progress')">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-info">{{ stats.on_progress }}</div>
-                <div class="small text-muted">On Progress</div>
-            </div>
-        </div>
+    <div class="stat-card prog" onclick="filterTask('on_progress')" id="filter-on_progress">
+        <div class="stat-label">On Progress</div>
+        <div class="stat-num prog">{{ stats.on_progress }}</div>
+        <div class="stat-icon">🔄</div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm" style="cursor:pointer" onclick="filterTask('done')">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-success">{{ stats.done }}</div>
-                <div class="small text-muted">Done</div>
-            </div>
-        </div>
+    <div class="stat-card done" onclick="filterTask('done')" id="filter-done">
+        <div class="stat-label">Done</div>
+        <div class="stat-num done">{{ stats.done }}</div>
+        <div class="stat-icon">✅</div>
     </div>
 </div>
 
-<div class="row g-4">
+<!-- Content Grid -->
+<div class="content-grid">
 
-    <!-- Task List -->
-    <div class="{% if ranking is defined and ranking %}col-md-8{% else %}col-12{% endif %}">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0">📋 Task</h5>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTask">
-                + Buat Task
-            </button>
+    <!-- Tasks -->
+    <div>
+        <div class="section-header">
+            <span class="section-title">Task</span>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modalTask')">+ Buat Task</button>
         </div>
 
+        <div id="task-list">
         {% for task in tasks %}
-        <div class="card shadow-sm mb-3 task-card" data-status="{{ task.status }}">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <a href="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}" class="fw-semibold text-decoration-none">
+        <div class="task-card" data-status="{{ task.status }}">
+            <div class="flex-between">
+                <div style="flex:1; min-width:0;">
+                    <a href="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}" class="task-title">
                         {{ task.judul }}
-                        </a>
-                        <div class="small text-muted mt-1">
-                            oleh {{ task.dibuat_oleh_nama or '-' }}
-                            {% if task.deadline %} · deadline: {{ task.deadline }}{% endif %}
-                        </div>
+                    </a>
+                    <div class="task-meta">
+                        oleh {{ task.dibuat_oleh_nama or '-' }}
+                        {% if task.deadline %} · 📅 {{ task.deadline }}{% endif %}
                     </div>
-                    <span class="badge
-                        {% if task.prioritas == 'high' %}bg-danger
-                        {% elif task.prioritas == 'low' %}bg-secondary
-                        {% else %}bg-warning text-dark{% endif %}">
-                        {{ task.prioritas }}
+                </div>
+                <div class="flex gap-2" style="flex-shrink:0; margin-left:12px;">
+                    <span class="badge badge-{{ task.status | replace('on_progress','progress') }}">
+                        {{ task.status | replace('on_progress','In Progress') | replace('open','Open') | replace('done','Done') }}
+                    </span>
+                    <span class="badge badge-{{ task.prioritas }}">
+                        {{ task.prioritas | title }}
                     </span>
                 </div>
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>{{ task.status }}</span>
-                        <span>{{ task.progres }}%</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar
-                            {% if task.progres == 100 %}bg-success
-                            {% elif task.progres > 0 %}bg-primary
-                            {% else %}bg-secondary{% endif %}"
-                            style="width: {{ task.progres }}%">
+            </div>
+            <div class="task-footer">
+                <div class="progress-wrap">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill {% if task.progres == 100 %}done{% elif task.progres > 0 %}prog{% else %}empty{% endif %}"
+                             style="width: {{ task.progres }}%">
                         </div>
                     </div>
                 </div>
+                <span class="progress-pct">{{ task.progres }}%</span>
             </div>
         </div>
         {% else %}
-        <div class="card shadow-sm">
-            <div class="card-body text-center text-muted">Belum ada task.</div>
+        <div class="card">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div>Belum ada task</div>
+            </div>
         </div>
         {% endfor %}
+        </div>
     </div>
 
-    <!-- Sidebar: Ranking + Komplain (manager only) -->
+    <!-- Sidebar: Ranking + Komplain -->
     {% if ranking is defined %}
-    <div class="col-md-4">
-        <h5 class="fw-bold mb-3">🏆 Ranking</h5>
-        <div class="card shadow-sm mb-4">
-            <div class="card-body p-0">
-                {% for r in ranking %}
-                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
-                    <span class="small">
-                        {% if loop.index == 1 %}🥇
-                        {% elif loop.index == 2 %}🥈
-                        {% elif loop.index == 3 %}🥉
-                        {% else %}<span class="text-muted">{{ loop.index }}.</span>
-                        {% endif %}
-                        {{ r.responder_nama }}
-                    </span>
-                    <span class="fw-bold text-primary">{{ r.total }}</span>
-                </div>
+    <div>
+        <!-- Ranking -->
+        <div class="section-header">
+            <span class="section-title">🏆 Ranking Responder</span>
+        </div>
+        <div class="card mb-4" style="overflow:hidden;">
+            {% for r in ranking %}
+            <div class="ranking-item">
+                {% if loop.index == 1 %}
+                    <span class="rank-medal">🥇</span>
+                {% elif loop.index == 2 %}
+                    <span class="rank-medal">🥈</span>
+                {% elif loop.index == 3 %}
+                    <span class="rank-medal">🥉</span>
                 {% else %}
-                <div class="px-3 py-2 text-muted small">Belum ada data.</div>
-                {% endfor %}
+                    <span class="rank-num">{{ loop.index }}</span>
+                {% endif %}
+                <div class="rank-avatar">{{ r.responder_nama[0].upper() if r.responder_nama else '?' }}</div>
+                <span class="rank-name">{{ r.responder_nama }}</span>
+                <span class="rank-score">{{ r.total }}</span>
             </div>
+            {% else %}
+            <div class="empty-state" style="padding:20px;">
+                <div class="text-muted text-sm">Belum ada data</div>
+            </div>
+            {% endfor %}
         </div>
 
+        <!-- Komplain Hari Ini -->
         {% if stats.komplain_hari_ini is defined %}
-        <h5 class="fw-bold mb-3">🚨 Komplain Hari Ini</h5>
-        <div class="card shadow-sm text-center">
-            <div class="card-body">
-                <div class="fs-1 fw-bold text-danger">{{ stats.komplain_hari_ini }}</div>
-                <div class="small text-muted">komplain masuk</div>
-            </div>
+        <div class="section-header">
+            <span class="section-title">Komplain Hari Ini</span>
+        </div>
+        <div class="komplain-card">
+            <div class="komplain-num">{{ stats.komplain_hari_ini }}</div>
+            <div class="komplain-label">komplain masuk</div>
+            <div class="komplain-sub">hari ini</div>
         </div>
         {% endif %}
     </div>
@@ -131,60 +275,58 @@
 </div>
 
 <!-- Modal Buat Task -->
-<div class="modal fade" id="modalTask" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Buat Task Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/buat">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Judul</label>
-                        <input type="text" name="judul" required class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Deskripsi</label>
-                        <textarea name="deskripsi" rows="3" class="form-control"></textarea>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col">
-                            <label class="form-label small fw-semibold">Deadline</label>
-                            <input type="date" name="deadline" class="form-control">
-                        </div>
-                        <div class="col">
-                            <label class="form-label small fw-semibold">Prioritas</label>
-                            <select name="prioritas" class="form-select">
-                                <option value="low">Low</option>
-                                <option value="normal" selected>Normal</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-                    </div>
-                    {% if users %}
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Assign ke</label>
-                        <select name="assignees" multiple class="form-select" size="4">
-                            {% for u in users %}
-                            <option value="{{ u.id }}">{{ u.nama }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">Ctrl+Click untuk pilih lebih dari 1</div>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
-                </div>
-            </form>
+<div class="modal-overlay" id="modalTask" onclick="if(event.target===this)closeModal('modalTask')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">Buat Task Baru</span>
+            <button class="btn-icon" onclick="closeModal('modalTask')">✕</button>
         </div>
+        <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/buat">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Judul</label>
+                    <input type="text" name="judul" required class="form-control" placeholder="Nama task...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Deskripsi</label>
+                    <textarea name="deskripsi" class="form-control" placeholder="Detail task..."></textarea>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Deadline</label>
+                        <input type="date" name="deadline" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Prioritas</label>
+                        <select name="prioritas" class="form-select">
+                            <option value="low">Low</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                {% if users %}
+                <div class="form-group">
+                    <label class="form-label">Assign ke <span class="text-muted text-xs">(Ctrl+Click untuk multi)</span></label>
+                    <select name="assignees" multiple class="form-select" size="4">
+                        {% for u in users %}
+                        <option value="{{ u.id }}">{{ u.nama }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTask')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Task</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Bootstrap JS untuk modal -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block extra_script %}
 <script>
 function filterTask(status) {
     const cards = document.querySelectorAll('.task-card');
@@ -195,11 +337,16 @@ function filterTask(status) {
             card.style.display = 'none';
         }
     });
+    // Update active filter card
+    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-filter'));
+    const btn = document.getElementById('filter-' + status);
+    if (btn) btn.classList.add('active-filter');
 }
 // Default: sembunyikan yang done
 filterTask('all');
 document.querySelectorAll('.task-card').forEach(card => {
     if (card.dataset.status === 'done') card.style.display = 'none';
 });
+document.getElementById('filter-all').classList.add('active-filter');
 </script>
 {% endblock %}
