@@ -18,7 +18,7 @@ def jadwal_required(func):
     from functools import wraps
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if session.get("role") not in ("manager", "kepala_support", "support"):
+        if session.get("role") not in ("manager", "kepala_support", "support", "superadmin"):
             return redirect(url_for("auth.index"))
         return func(*args, **kwargs)
     return wrapper
