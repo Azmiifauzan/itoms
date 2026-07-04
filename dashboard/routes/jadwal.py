@@ -28,16 +28,14 @@ def can_edit():
     return session.get("role") in ("manager", "kepala_support")
 
 def get_hari_libur(tahun: int) -> dict:
-    """"Ambil hari libur API."""
-    try:
-        resp = request.get(
-            f"https://api-harilibur.vercel.app/api?year={tahun}",
-            timeout=5
-        )
-        data = resp.json()
-        return {h["holiday_date"]: h["holiday_name"] for h in data if h["is_national_holiday"]}
-    except Exception:
-        return {}
+    """Ambil hari libur dari database lokal."""
+    from db.local import get_conn
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT tanggal, nama FROM hari_libur WHERE tanggal LIKE ?",
+            (f"{tahun}%",)
+        ).fetchall()
+        return {r["tanggal"]: r["nama"] for r in rows}
     
 # Kalender
 @jadwal_bp.route("/")
