@@ -175,6 +175,19 @@
             <a href="/jadwal/" class="nav-item {% if 'jadwal' in request.path %}active{% endif %}">
                 <span class="nav-icon">📅</span> Jadwal
             </a>
+            {% if session.role == 'superadmin' %}
+            <div class="nav-divider"></div>
+            <div class="nav-section">Superadmin</div>
+            <a href="/superadmin/telegram" class="nav-item {% if 'telegram' in request.path %}active{% endif %}">
+                <span class="nav-icon">📱</span> Telegram ID
+            </a>
+            <a href="/superadmin/libur" class="nav-item {% if 'libur' in request.path %}active{% endif %}">
+                <span class="nav-icon">🗓️</span> Hari Libur
+            </a>
+            <a href="/superadmin/piket" class="nav-item {% if 'piket' in request.path %}active{% endif %}">
+                <span class="nav-icon">👷</span> Daftar Piket
+            </a>
+            {% endif %}
             {% if session.role == 'manager' %}
             <div class="nav-divider"></div>
             <div class="nav-section">Administrasi</div>

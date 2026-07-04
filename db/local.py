@@ -68,10 +68,27 @@ def init_db():
         """)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS whitelist_telegram (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                whitelist_id    INTEGER NOT NULL REFERENCES whitelist(id),
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                whitelist_id     INTEGER NOT NULL REFERENCES whitelist(id),
                 telegram_user_id INTEGER NOT NULL,
+                label            TEXT,
                 UNIQUE(whitelist_id, telegram_user_id)
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS hari_libur (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                tanggal TEXT NOT NULL UNIQUE,
+                nama    TEXT NOT NULL
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS daftar_piket (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                whitelist_id INTEGER NOT NULL UNIQUE REFERENCES whitelist(id),
+                urutan       INTEGER NOT NULL
             )
         """)
         conn.execute("""
@@ -164,6 +181,70 @@ def list_users() -> list[dict]:
             "SELECT user_id, nama, added_by, added_at FROM whitelist ORDER BY added_at"
         ).fetchall()
         return [dict(r) for r in rows]
+
+# ──────────────────────────────────────────
+# Whitelist Telegram operations
+# ──────────────────────────────────────────
+
+def get_telegram_ids(whitelist_id: int) -> list[dict]:
+    """Ambil semua telegram ID untuk satu whitelist user."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM whitelist_telegram WHERE whitelist_id = ? ORDER BY id",
+            (whitelist_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def add_telegram_id(whitelist_id: int, telegram_user_id: int, label: str = None) -> bool:
+    """Tambah telegram ID ke whitelist user. Return False kalau sudah ada."""
+    try:
+        with get_conn() as conn:
+            conn.execute(
+                "INSERT INTO whitelist_telegram (whitelist_id, telegram_user_id, label) VALUES (?, ?, ?)",
+                (whitelist_id, telegram_user_id, label)
+            )
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+
+def remove_telegram_id(telegram_id: int):
+    """Hapus telegram ID berdasarkan ID row."""
+    with get_conn() as conn:
+        conn.execute("DELETE FROM whitelist_telegram WHERE id = ?", (telegram_id,))
+        conn.commit()
+
+
+def get_all_telegram_ids_for_user(whitelist_id: int) -> list[int]:
+    """Return list telegram_user_id untuk satu whitelist user."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT telegram_user_id FROM whitelist_telegram WHERE whitelist_id = ?",
+            (whitelist_id,)
+        ).fetchall()
+        return [r["telegram_user_id"] for r in rows]
+
+
+def get_whitelist_by_telegram_id(telegram_user_id: int) -> dict | None:
+    """Cari whitelist user berdasarkan telegram_user_id (cek tabel lama dan baru)."""
+    with get_conn() as conn:
+        # Cek tabel whitelist_telegram dulu
+        row = conn.execute("""
+            SELECT w.* FROM whitelist w
+            JOIN whitelist_telegram wt ON w.id = wt.whitelist_id
+            WHERE wt.telegram_user_id = ?
+            LIMIT 1
+        """, (telegram_user_id,)).fetchone()
+        if row:
+            return dict(row)
+        # Fallback ke kolom lama
+        row = conn.execute(
+            "SELECT * FROM whitelist WHERE user_id = ? LIMIT 1",
+            (telegram_user_id,)
+        ).fetchone()
+        return dict(row) if row else None
 
 # ──────────────────────────────────────────
 # Jadwal operations

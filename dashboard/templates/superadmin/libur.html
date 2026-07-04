@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Hari Libur{% endblock %}
+{% block page_title %}Kelola Hari Libur{% endblock %}
+
+{% block extra_style %}
+.libur-table{width:100%;border-collapse:collapse}
+.libur-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)}
+.libur-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+.libur-table tr:last-child td{border-bottom:none}
+.libur-table tr:hover td{background:var(--bg-hover)}
+.year-tab{display:inline-flex;align-items:center;padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:1px solid var(--border);color:var(--text-muted);transition:all .15s}
+.year-tab:hover{background:var(--bg-hover);color:var(--text)}
+.year-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <div>
+        <div style="font-size:15px;font-weight:700">🗓️ Hari Libur Nasional</div>
+        <div class="text-muted text-sm mt-1">Data tanggal merah untuk kalender jadwal</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modalTambah')">+ Tambah Tanggal</button>
+</div>
+
+<!-- Year tabs -->
+<div class="flex gap-2 mb-4">
+    {% for y in [2025, 2026, 2027] %}
+    <a href="/superadmin/libur?tahun={{ y }}" class="year-tab {% if y == tahun %}active{% endif %}">{{ y }}</a>
+    {% endfor %}
+</div>
+
+<div class="card" style="overflow:hidden">
+    <table class="libur-table">
+        <thead>
+            <tr>
+                <th>Tanggal</th>
+                <th>Nama Hari Libur</th>
+                <th>Hari</th>
+                <th style="text-align:right">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in libur_list %}
+            {% set days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] %}
+            <tr>
+                <td>
+                    <span style="font-family:monospace;font-size:13px;font-weight:600;color:var(--danger)">{{ l.tanggal }}</span>
+                </td>
+                <td>{{ l.nama }}</td>
+                <td>
+                    <span class="badge" style="background:#FEE2E2;color:#DC2626">
+                        🔴
+                    </span>
+                </td>
+                <td style="text-align:right">
+                    <form method="POST" action="/superadmin/libur/hapus/{{ l.id }}" style="display:inline" onsubmit="return confirm('Hapus {{ l.nama }}?')">
+                        <button type="submit" class="btn btn-danger-soft btn-xs">Hapus</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">
+                    Belum ada data hari libur untuk tahun {{ tahun }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Tambah -->
+<div class="modal-overlay" id="modalTambah" onclick="if(event.target===this)closeModal('modalTambah')">
+    <div class="modal-box" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">Tambah Hari Libur</span>
+            <button class="btn-icon" onclick="closeModal('modalTambah')">✕</button>
+        </div>
+        <form method="POST" action="/superadmin/libur/tambah">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Tanggal</label>
+                    <input type="date" name="tanggal" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Hari Libur</label>
+                    <input type="text" name="nama" required class="form-control" placeholder="contoh: HUT Kemerdekaan RI">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTambah')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

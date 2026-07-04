@@ -40,13 +40,15 @@ def index():
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
     user = get_current_user()
-    if user["role"] == "manager":
+    if user["role"] == "superadmin":
+        return redirect(url_for("superadmin.dashboard"))
+    elif user["role"] == "manager":
         return redirect(url_for("manager.dashboard"))
     elif user["role"] in ("kepala_support", "support"):
         return redirect(url_for("support.dashboard"))
     else:
         return redirect(url_for("programmer.dashboard"))
-
+    
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
