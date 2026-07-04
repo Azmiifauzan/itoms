@@ -50,7 +50,7 @@
                     <select name="whitelist_id" required class="form-select">
                         <option value="">-- Pilih --</option>
                         {% for w in whitelist %}
-                        <option value="{{ w.id }}">{{ w.nama }}</option>
+                        <option value=""{{ w.user_id }}">{{ w.nama }}</option>
                         {% endfor %}
                     </select>
                     <div class="form-hint">Hanya user yang ada di whitelist bot yang bisa masuk piket</div>

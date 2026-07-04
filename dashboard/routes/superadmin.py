@@ -56,7 +56,7 @@ def telegram():
     user = get_current_user()
     with get_conn() as conn:
         whitelist = conn.execute(
-            "SELECT * FROM whitelist ORDER BY nama"
+            "SELECT rowid as id, * FROM whitelist ORDER BY nama"
         ).fetchall()
     # Ambil telegram IDs per user
     whitelist_data = []
@@ -156,11 +156,11 @@ def piket():
         daftar = conn.execute("""
             SELECT dp.*, w.nama as nama_user
             FROM daftar_piket dp
-            JOIN whitelist w ON dp.whitelist_id = w.id
+            JOIN whitelist w ON dp.whitelist_id = w.user_id
             ORDER BY dp.urutan
         """).fetchall()
         whitelist = conn.execute(
-            "SELECT * FROM whitelist ORDER BY nama"
+            "SELECT rowid as id, user_id, nama FROM whitelist ORDER BY nama"
         ).fetchall()
     return render_template("superadmin/piket.html",
         user=user,
