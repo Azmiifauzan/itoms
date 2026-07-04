@@ -61,9 +61,17 @@ def init_db():
                 username          TEXT NOT NULL UNIQUE,
                 password_hash     TEXT NOT NULL,
                 nama              TEXT NOT NULL,
-                role              TEXT NOT NULL CHECK(role IN ('manager','kepala_support','support','programmer')),
+                role              TEXT NOT NULL CHECK(role IN ('superadmin','manager','kepala_support','support','programmer')),
                 telegram_user_id  INTEGER,
                 created_at        TEXT DEFAULT (datetime('now','localtime'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS whitelist_telegram (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                whitelist_id    INTEGER NOT NULL REFERENCES whitelist(id),
+                telegram_user_id INTEGER NOT NULL,
+                UNIQUE(whitelist_id, telegram_user_id)
             )
         """)
         conn.execute("""
