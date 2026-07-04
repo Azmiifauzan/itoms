@@ -167,7 +167,7 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% set base_path = 'support' if session.role == 'kepala_support' else session.role %}
+            {% set base_path = 'support' if session.role == 'kepala_support' else ('superadmin' if session.role == 'superadmin' else session.role) %}
             <div class="nav-section">Menu Utama</div>
             <a href="/{{ base_path }}/dashboard" class="nav-item {% if 'dashboard' in request.path %}active{% endif %}">
                 <span class="nav-icon">⊞</span> Dashboard
