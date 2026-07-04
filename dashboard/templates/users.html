@@ -1,145 +1,180 @@
 {% extends "base.html" %}
 {% block title %}Kelola User{% endblock %}
-{% block content %}
+{% block page_title %}Kelola User{% endblock %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="fw-bold mb-0">👥 Kelola User</h5>
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
-        + Tambah User
-    </button>
+{% block extra_style %}
+.users-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.users-count{font-size:13px;color:var(--text-muted)}
+
+.user-table{width:100%;border-collapse:collapse}
+.user-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
+.user-table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+.user-table tr:last-child td{border-bottom:none}
+.user-table tr:hover td{background:var(--bg-hover)}
+
+.user-info-cell{display:flex;align-items:center;gap:10px}
+.user-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.user-av-name{font-weight:600;font-size:13.5px}
+.user-av-sub{font-size:11.5px;color:var(--text-muted)}
+
+.action-group{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+
+.tg-id{font-family:monospace;font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:4px;color:var(--text-muted)}
+.tg-empty{color:var(--text-muted);font-size:12px}
+
+.created-at{font-size:12px;color:var(--text-muted)}
+
+@media(max-width:768px){
+    .col-hide{display:none}
+    .action-group{flex-direction:column;align-items:flex-end}
+}
+{% endblock %}
+
+{% block content %}
+<div class="users-toolbar">
+    <div>
+        <div class="section-title" style="font-size:15px;font-weight:700">👥 Kelola User</div>
+        <div class="users-count mt-1">{{ users|length }} user terdaftar</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modalTambah')">+ Tambah User</button>
 </div>
 
-<!-- Tabel User -->
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="ps-3">Nama</th>
-                    <th>Username</th>
-                    <th>Role</th>
-                    <th>Telegram ID</th>
-                    <th>Dibuat</th>
-                    <th class="text-end pe-3">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in users %}
-                <tr>
-                    <td class="ps-3 fw-semibold">{{ u.nama }}</td>
-                    <td class="text-muted small">{{ u.username }}</td>
-                    <td>
-                        <span class="badge
-                            {% if u.role == 'manager' %}bg-danger
-                            {% elif u.role == 'kepala_support' %}bg-warning text-dark
-                            {% elif u.role == 'support' %}bg-primary
-                            {% else %}bg-secondary{% endif %}">
-                            {{ u.role }}
-                        </span>
-                    </td>
-                    <td class="small text-muted">{{ u.telegram_user_id or '-' }}</td>
-                    <td class="small text-muted">{{ u.created_at }}</td>
-                    <td class="text-end pe-3">
-                        <!-- Reset Password -->
-                        <button class="btn btn-outline-secondary btn-sm"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modalReset{{ u.id }}">
-                            Reset PW
-                        </button>
-                        <!-- Hapus -->
-                        {% if u.id != session.get('user_id') %}
-                        <form method="POST" action="/manager/users/{{ u.id }}/hapus"
-                            class="d-inline"
-                            onsubmit="return confirm('Hapus user {{ u.nama }}?')">
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Hapus</button>
-                        </form>
-                        {% endif %}
-                    </td>
-                </tr>
-
-                <!-- Modal Reset Password -->
-                <div class="modal fade" id="modalReset{{ u.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-sm">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h6 class="modal-title">Reset Password — {{ u.nama }}</h6>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <form method="POST" action="/manager/users/{{ u.id }}/reset">
-                                <div class="modal-body">
-                                    <input type="password" name="password_baru" required
-                                        class="form-control" placeholder="Password baru">
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary btn-sm"
-                                        data-bs-dismiss="modal">Batal</button>
-                                    <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
-                                </div>
-                            </form>
+<div class="card" style="overflow:hidden">
+    <table class="user-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th class="col-hide">Telegram ID</th>
+                <th class="col-hide">Terdaftar</th>
+                <th style="text-align:right">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>
+                    <div class="user-info-cell">
+                        <div class="user-av">{{ (u.nama or 'U')[0].upper() }}</div>
+                        <div>
+                            <div class="user-av-name">{{ u.nama }}</div>
+                            <div class="user-av-sub">@{{ u.username }}</div>
                         </div>
                     </div>
-                </div>
-
-                {% else %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">Belum ada user.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                </td>
+                <td>
+                    <span class="badge badge-{{ u.role }}">
+                        {{ u.role|replace('_',' ')|title }}
+                    </span>
+                </td>
+                <td class="col-hide">
+                    {% if u.telegram_user_id %}
+                    <span class="tg-id">{{ u.telegram_user_id }}</span>
+                    {% else %}
+                    <span class="tg-empty">—</span>
+                    {% endif %}
+                </td>
+                <td class="col-hide">
+                    <span class="created-at">{{ u.created_at[:10] if u.created_at else '—' }}</span>
+                </td>
+                <td>
+                    <div class="action-group">
+                        <button class="btn btn-outline btn-xs" onclick="openModal('modalReset{{ u.id }}')">
+                            🔑 Reset PW
+                        </button>
+                        {% if u.id != session.get('user_id') %}
+                        <form method="POST" action="/manager/users/{{ u.id }}/hapus" style="display:inline" onsubmit="return confirm('Hapus user {{ u.nama }}?')">
+                            <button type="submit" class="btn btn-danger-soft btn-xs">🗑 Hapus</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada user</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
-<!-- Modal Tambah User -->
-<div class="modal fade" id="modalTambah" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Tambah User Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal Reset Password per user -->
+{% for u in users %}
+<div class="modal-overlay" id="modalReset{{ u.id }}" onclick="if(event.target===this)closeModal('modalReset{{ u.id }}')">
+    <div class="modal-box" style="max-width:380px">
+        <div class="modal-header">
+            <span class="modal-title">Reset Password</span>
+            <button class="btn-icon" onclick="closeModal('modalReset{{ u.id }}')">✕</button>
+        </div>
+        <form method="POST" action="/manager/users/{{ u.id }}/reset">
+            <div class="modal-body">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:var(--bg-hover);border-radius:var(--radius-sm)">
+                    <div class="user-av" style="width:36px;height:36px">{{ (u.nama or 'U')[0].upper() }}</div>
+                    <div>
+                        <div style="font-weight:600;font-size:13.5px">{{ u.nama }}</div>
+                        <div style="font-size:11.5px;color:var(--text-muted)">@{{ u.username }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password Baru</label>
+                    <input type="password" name="password_baru" required class="form-control" placeholder="Masukkan password baru...">
+                </div>
             </div>
-            <form method="POST" action="/manager/users/tambah">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Nama Lengkap</label>
-                        <input type="text" name="nama" required class="form-control">
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalReset{{ u.id }}')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal Tambah User -->
+<div class="modal-overlay" id="modalTambah" onclick="if(event.target===this)closeModal('modalTambah')">
+    <div class="modal-box modal-box-lg">
+        <div class="modal-header">
+            <span class="modal-title">Tambah User Baru</span>
+            <button class="btn-icon" onclick="closeModal('modalTambah')">✕</button>
+        </div>
+        <form method="POST" action="/manager/users/tambah">
+            <div class="modal-body">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nama Lengkap</label>
+                        <input type="text" name="nama" required class="form-control" placeholder="Nama lengkap...">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Username</label>
-                        <input type="text" name="username" required class="form-control">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" required class="form-control" placeholder="username login...">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Password</label>
-                        <input type="password" name="password" required class="form-control">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" required class="form-control" placeholder="Password...">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Role</label>
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
                         <select name="role" class="form-select">
-                            <option value="support">Support</option>
+                            <option value="support">IT Support</option>
                             <option value="kepala_support">Kepala Support</option>
                             <option value="programmer">Programmer</option>
                             <option value="manager">Manager</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">
-                            Telegram User ID
-                            <span class="text-muted fw-normal">(opsional, untuk notifikasi)</span>
-                        </label>
-                        <input type="text" name="telegram_user_id" class="form-control"
-                            placeholder="contoh: 123456789">
-                        <div class="form-text">Cek ID via /myid di bot Telegram</div>
-                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm"
-                        data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
+                <div class="form-group">
+                    <label class="form-label">Telegram User ID <span class="text-muted text-xs">(opsional, untuk notifikasi bot)</span></label>
+                    <input type="text" name="telegram_user_id" class="form-control" placeholder="contoh: 123456789">
+                    <div class="form-hint">Cek ID via /myid di bot Telegram</div>
                 </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTambah')">Batal</button>
+                <button type="submit" class="btn btn-primary">Tambah User</button>
+            </div>
+        </form>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

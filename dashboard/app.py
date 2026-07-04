@@ -26,4 +26,4 @@ app.register_blueprint(programmer_bp)
 app.register_blueprint(jadwal_bp)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8001, debug=False)
+    app.run(host="0.0.0.0", port=7770, debug=False)

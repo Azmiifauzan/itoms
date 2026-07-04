@@ -83,6 +83,7 @@ def index():
         nama_list=nama_list,
         can_edit=can_edit(),
         whitelist=whitelist,
+        today_str=date.today().strftime("%Y-%m-%d"),
         )
 
 #UPLOAD EXCEL
