@@ -57,11 +57,11 @@
 </div>
 
 <!-- Modal tambah per user -->
-<div class="modal-overlay" id="modalTambah{{ item.user.user_id }}" onclick="if(event.target===this)closeModal('modalTambah{{ item.user.id }}')">
+<div class="modal-overlay" id="modalTambah{{ item.user.user_id }}" onclick="if(event.target===this)closeModal('modalTambah{{ item.user.user_id }}')">
     <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
             <span class="modal-title">Tambah Telegram ID — {{ item.user.nama }}</span>
-            <button class="btn-icon" onclick="closeModal('modalTambah{{ item.user.id }}')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalTambah{{ item.user.user_id }}')">✕</button>
         </div>
         <form method="POST" action="/superadmin/telegram/tambah">
             <input type="hidden" name="whitelist_id" value="{{ item.user.user_id }}">
