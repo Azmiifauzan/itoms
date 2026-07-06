@@ -36,8 +36,8 @@
                 <td style="font-weight:600">{{ w.nama }}</td>
                 <td><span style="font-family:monospace;font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:4px">{{ w.user_id }}</span></td>
                 <td><span class="text-muted">{{ w.nama_jadwal or '—' }}</span></td>
-                <td><span class="text-muted text-sm">{{ w.added_at[:10] if w.added_at else '—' }}</span></td>
                 <td><span class="text-muted">{{ w.no_hp or '—' }}</span></td>
+                <td><span class="text-muted text-sm">{{ w.added_at[:10] if w.added_at else '—' }}</span></td>                
                 <td>
                     <div class="flex gap-2" style="justify-content:flex-end">
                         <button class="btn btn-outline btn-xs" onclick="openModal('modalEdit{{ w.user_id }}')">Edit</button>
@@ -65,11 +65,11 @@
                                 <label class="form-label">Nama Jadwal <span class="text-muted text-xs">(nama yang dipakai di file Excel jadwal)</span></label>
                                 <input type="text" name="nama_jadwal" value="{{ w.nama_jadwal or '' }}" class="form-control" placeholder="contoh: Azmii">
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">No HP</label>
-                            <input type="text" name="no_hp" value="{{ w.no_hp or '' }}" class="form-control" placeholder="contoh: 6281234567890">
-                        </div>
+                            <div class="form-group">
+                                <label class="form-label">No HP</label>
+                                <input type="text" name="no_hp" value="{{ w.no_hp or '' }}" class="form-control" placeholder="contoh: 6281234567890">
+                            </div>
+                        </div>                        
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal('modalEdit{{ w.user_id }}')">Batal</button>
                             <button type="submit" class="btn btn-primary">Simpan</button>
