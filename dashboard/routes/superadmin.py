@@ -224,11 +224,12 @@ def whitelist():
 def edit_whitelist(user_id):
     nama = request.form.get("nama", "").strip()
     nama_jadwal = request.form.get("nama_jadwal", "").strip()
+    no_hp = request.form.get("no_hp", "").strip()
     if nama:
         with get_conn() as conn:
             conn.execute(
-                "UPDATE whitelist SET nama = ?, nama_jadwal = ? WHERE user_id = ?",
-                (nama, nama_jadwal or None, user_id)
+                "UPDATE whitelist SET nama = ?, nama_jadwal = ?, no_hp = ? WHERE user_id = ?",
+                (nama, nama_jadwal or None, no_hp or None, user_id)
             )
             conn.commit()
     return redirect(url_for("superadmin.whitelist"))
