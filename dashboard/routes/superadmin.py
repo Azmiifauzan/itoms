@@ -78,9 +78,16 @@ def tambah_telegram():
     whitelist_id = request.form.get("whitelist_id", "").strip()
     telegram_user_id = request.form.get("telegram_user_id", "").strip()
     label = request.form.get("label", "").strip()
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[DEBUG] tambah_telegram: whitelist_id={whitelist_id}, telegram_user_id={telegram_user_id}, label={label}")
 
     if whitelist_id.lstrip("-").isdigit() and telegram_user_id.isdigit():
-        add_telegram_id(int(whitelist_id), int(telegram_user_id), label or None)
+        result = add_telegram_id(int(whitelist_id), int(telegram_user_id), label or None)
+        logger.info(f"[DEBUG] add_telegram_id result: {result}")
+    else:
+        logger.info(f"[DEBUG] validasi gagal: whitelist_id={whitelist_id}, telegram_user_id={telegram_user_id}")
 
     return redirect(url_for("superadmin.telegram"))
 
