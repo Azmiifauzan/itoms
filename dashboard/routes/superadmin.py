@@ -172,7 +172,8 @@ def piket():
 @login_required
 @superadmin_required
 def tambah_piket():
-    whitelist_id = int(request.form.get("whitelist_id", 0))
+    whitelist_id_str = request.form.get("whitelist_id", "").strip()
+    whitelist_id = int(whitelist_id_str) if whitelist_id_str.isdigit() else 0
     if whitelist_id:
         with get_conn() as conn:
             max_urutan = conn.execute(
