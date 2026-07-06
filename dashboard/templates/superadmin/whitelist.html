@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Kelola Whitelist{% endblock %}
+{% block page_title %}Kelola Whitelist Bot{% endblock %}
+
+{% block extra_style %}
+.wl-table{width:100%;border-collapse:collapse}
+.wl-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)}
+.wl-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+.wl-table tr:last-child td{border-bottom:none}
+.wl-table tr:hover td{background:var(--bg-hover)}
+{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <div>
+        <div style="font-size:15px;font-weight:700">👥 Whitelist Bot</div>
+        <div class="text-muted text-sm mt-1">{{ whitelist|length }} user terdaftar</div>
+    </div>
+</div>
+
+<div class="card" style="overflow:hidden">
+    <table class="wl-table">
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Telegram ID</th>
+                <th>Nama Jadwal</th>
+                <th>Ditambahkan</th>
+                <th style="text-align:right">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for w in whitelist %}
+            <tr>
+                <td style="font-weight:600">{{ w.nama }}</td>
+                <td><span style="font-family:monospace;font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:4px">{{ w.user_id }}</span></td>
+                <td><span class="text-muted">{{ w.nama_jadwal or '—' }}</span></td>
+                <td><span class="text-muted text-sm">{{ w.added_at[:10] if w.added_at else '—' }}</span></td>
+                <td>
+                    <div class="flex gap-2" style="justify-content:flex-end">
+                        <button class="btn btn-outline btn-xs" onclick="openModal('modalEdit{{ w.user_id }}')">Edit</button>
+                        <form method="POST" action="/superadmin/whitelist/hapus/{{ w.user_id }}" style="display:inline" onsubmit="return confirm('Hapus {{ w.nama }} dari whitelist?')">
+                            <button type="submit" class="btn btn-danger-soft btn-xs">Hapus</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Modal Edit -->
+            <div class="modal-overlay" id="modalEdit{{ w.user_id }}" onclick="if(event.target===this)closeModal('modalEdit{{ w.user_id }}')">
+                <div class="modal-box" style="max-width:400px">
+                    <div class="modal-header">
+                        <span class="modal-title">Edit — {{ w.nama }}</span>
+                        <button class="btn-icon" onclick="closeModal('modalEdit{{ w.user_id }}')">✕</button>
+                    </div>
+                    <form method="POST" action="/superadmin/whitelist/edit/{{ w.user_id }}">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label class="form-label">Nama</label>
+                                <input type="text" name="nama" value="{{ w.nama }}" required class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Nama Jadwal <span class="text-muted text-xs">(nama yang dipakai di file Excel jadwal)</span></label>
+                                <input type="text" name="nama_jadwal" value="{{ w.nama_jadwal or '' }}" class="form-control" placeholder="contoh: Azmii">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('modalEdit{{ w.user_id }}')">Batal</button>
+                            <button type="submit" class="btn btn-primary">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada user di whitelist</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

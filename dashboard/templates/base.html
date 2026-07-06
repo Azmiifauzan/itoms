@@ -187,6 +187,9 @@
             <a href="/superadmin/piket" class="nav-item {% if 'piket' in request.path %}active{% endif %}">
                 <span class="nav-icon">👷</span> Daftar Piket
             </a>
+            <a href="/superadmin/whitelist" class="nav-item {% if 'whitelist' in request.path %}active{% endif %}">
+                <span class="nav-icon">📋</span> Whitelist Bot
+            </a>
             {% endif %}
             {% if session.role == 'manager' %}
             <div class="nav-divider"></div>

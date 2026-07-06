@@ -56,12 +56,11 @@ def telegram():
     user = get_current_user()
     with get_conn() as conn:
         whitelist = conn.execute(
-            "SELECT rowid as id, * FROM whitelist ORDER BY nama"
+            "SELECT * FROM whitelist ORDER BY nama"
         ).fetchall()
-    # Ambil telegram IDs per user
     whitelist_data = []
     for w in whitelist:
-        tg_ids = get_telegram_ids(w["id"])
+        tg_ids = get_telegram_ids(w["user_id"])  # ← pakai user_id
         whitelist_data.append({
             "user": dict(w),
             "telegram_ids": tg_ids
@@ -76,12 +75,12 @@ def telegram():
 @login_required
 @superadmin_required
 def tambah_telegram():
-    whitelist_id = int(request.form.get("whitelist_id", 0))
+    whitelist_id = request.form.get("whitelist_id", "").strip()
     telegram_user_id = request.form.get("telegram_user_id", "").strip()
     label = request.form.get("label", "").strip()
 
-    if whitelist_id and telegram_user_id.isdigit():
-        add_telegram_id(whitelist_id, int(telegram_user_id), label or None)
+    if whitelist_id.lstrip("-").isdigit() and telegram_user_id.isdigit():
+        add_telegram_id(int(whitelist_id), int(telegram_user_id), label or None)
 
     return redirect(url_for("superadmin.telegram"))
 
@@ -198,3 +197,41 @@ def hapus_piket(pid):
         conn.execute("DELETE FROM daftar_piket WHERE id = ?", (pid,))
         conn.commit()
     return redirect(url_for("superadmin.piket"))
+
+@superadmin_bp.route("/whitelist")
+@login_required
+@superadmin_required
+def whitelist():
+    user = get_current_user()
+    with get_conn() as conn:
+        wl = conn.execute(
+            "SELECT * FROM whitelist ORDER BY nama"
+        ).fetchall()
+    return render_template("superadmin/whitelist.html", user=user, whitelist=wl)
+
+
+@superadmin_bp.route("/whitelist/edit/<int:user_id>", methods=["POST"])
+@login_required
+@superadmin_required
+def edit_whitelist(user_id):
+    nama = request.form.get("nama", "").strip()
+    nama_jadwal = request.form.get("nama_jadwal", "").strip()
+    if nama:
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE whitelist SET nama = ?, nama_jadwal = ? WHERE user_id = ?",
+                (nama, nama_jadwal or None, user_id)
+            )
+            conn.commit()
+    return redirect(url_for("superadmin.whitelist"))
+
+
+@superadmin_bp.route("/whitelist/hapus/<int:user_id>", methods=["POST"])
+@login_required
+@superadmin_required
+def hapus_whitelist(user_id):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM whitelist_telegram WHERE whitelist_id = ?", (user_id,))
+        conn.execute("DELETE FROM whitelist WHERE user_id = ?", (user_id,))
+        conn.commit()
+    return redirect(url_for("superadmin.whitelist"))
