@@ -7,6 +7,7 @@ import io
 from datetime import datetime, date
 import requests
 import openpyxl
+import random
 from openpyxl.styles import Font, PatternFill, Alignment
 from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, jsonify
 from dashboard.auth import login_required, get_current_user

@@ -266,16 +266,18 @@
                 {% if blackout_list %}
                 <div style="margin-top:12px">
                     <div class="form-label">Blackout bulan ini:</div>
-                    {% for b in blackout_list %}
-                    <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-                        <span><b>{{ b.nama_user }}</b> — {{ b.tanggal }} {% if b.keterangan %}<span class="text-muted">({{ b.keterangan }})</span>{% endif %}</span>
-                        <form method="POST" action="/jadwal/blackout/hapus/{{ b.id }}" style="display:inline">
-                            <input type="hidden" name="tahun" value="{{ tahun }}">
-                            <input type="hidden" name="bulan" value="{{ bulan }}">
-                            <button type="submit" class="btn btn-danger-soft btn-xs">✕</button>
-                        </form>
+                    <div style="max-height:180px; overflow-y:auto; padding-right:4px;">
+                        {% for b in blackout_list %}
+                        <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+                            <span><b>{{ b.nama_user }}</b> — {{ b.tanggal }} {% if b.keterangan %}<span class="text-muted">({{ b.keterangan }})</span>{% endif %}</span>
+                            <form method="POST" action="/jadwal/blackout/hapus/{{ b.id }}" style="display:inline">
+                                <input type="hidden" name="tahun" value="{{ tahun }}">
+                                <input type="hidden" name="bulan" value="{{ bulan }}">
+                                <button type="submit" class="btn btn-danger-soft btn-xs">✕</button>
+                            </form>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
                 {% endif %}
             </div>
