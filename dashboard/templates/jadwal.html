@@ -227,6 +227,7 @@
 </div>
 {% endif %}
 <!-- Modal Request Tanggal (Blackout) -->
+ {% if can_edit %}
 <div class="modal-overlay" id="modalRequest" onclick="if(event.target===this)closeModal('modalRequest')">
     <div class="modal-box">
         <div class="modal-header">
