@@ -17,6 +17,7 @@ from dashboard.routes.jadwal import jadwal_bp
 from dashboard.routes.superadmin import superadmin_bp
 
 app = Flask(__name__, template_folder="templates")
+app.jinja_env.globals.update(enumerate=enumerate)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "ganti-ini-dengan-random-string")
 
 # Register blueprints
