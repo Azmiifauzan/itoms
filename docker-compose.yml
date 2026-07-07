@@ -17,7 +17,7 @@ services:
       context: .
       network: host
     container_name: itoms_dashboard
-    command: gunicorn -w 2 -b 0.0.0.0:7770 "dashboard.app:app"
+    command: gunicorn -w 2 -b 0.0.0.0:7770 --timeout 1200 --worker-class gthread --threads 4 "dashboard.app:app"
     network_mode: host
     volumes:
       - .:/app
