@@ -75,6 +75,9 @@
     <div class="jadwal-actions">
         <a href="/jadwal/template" class="btn btn-outline btn-sm">⬇ Template</a>
         <button class="btn btn-outline btn-sm" onclick="openModal('modalUpload')">⬆ Upload Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="openModal('modalRequest')">📅 Request Tanggal</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalGenerate')">⚡ Generate Jadwal</button>
+        <a href="/jadwal/download/excel?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-outline btn-sm">⬇ Excel</a>
         <button class="btn btn-primary btn-sm" onclick="openModal('modalTambah')">+ Input Manual</button>
     </div>
     {% endif %}
@@ -218,6 +221,102 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modalTambah')">Batal</button>
                 <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+<!-- Modal Request Tanggal (Blackout) -->
+{% if can_edit %}
+<div class="modal-overlay" id="modalRequest" onclick="if(event.target===this)closeModal('modalRequest')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">📅 Request Tanggal Tidak Bisa Bertugas</span>
+            <button class="btn-icon" onclick="closeModal('modalRequest')">✕</button>
+        </div>
+        <form method="POST" action="/jadwal/blackout/tambah">
+            <input type="hidden" name="tahun" value="{{ tahun }}">
+            <input type="hidden" name="bulan" value="{{ bulan }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nama</label>
+                    <select name="whitelist_id" required class="form-select">
+                        <option value="">-- Pilih --</option>
+                        {% for w in whitelist_all %}
+                        <option value="{{ w.user_id }}">{{ w.nama }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Dari Tanggal</label>
+                        <input type="date" name="tanggal_mulai" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sampai Tanggal <span class="text-muted text-xs">(opsional)</span></label>
+                        <input type="date" name="tanggal_selesai" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Keterangan <span class="text-muted text-xs">(opsional)</span></label>
+                    <input type="text" name="keterangan" class="form-control" placeholder="contoh: cuti, sakit, dll">
+                </div>
+
+                <!-- List blackout bulan ini -->
+                {% if blackout_list %}
+                <div style="margin-top:12px">
+                    <div class="form-label">Blackout bulan ini:</div>
+                    {% for b in blackout_list %}
+                    <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+                        <span><b>{{ b.nama_user }}</b> — {{ b.tanggal }} {% if b.keterangan %}<span class="text-muted">({{ b.keterangan }})</span>{% endif %}</span>
+                        <form method="POST" action="/jadwal/blackout/hapus/{{ b.id }}" style="display:inline">
+                            <input type="hidden" name="tahun" value="{{ tahun }}">
+                            <input type="hidden" name="bulan" value="{{ bulan }}">
+                            <button type="submit" class="btn btn-danger-soft btn-xs">✕</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalRequest')">Tutup</button>
+                <button type="submit" class="btn btn-primary">Simpan Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Generate -->
+<div class="modal-overlay" id="modalGenerate" onclick="if(event.target===this)closeModal('modalGenerate')">
+    <div class="modal-box" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">⚡ Generate Jadwal</span>
+            <button class="btn-icon" onclick="closeModal('modalGenerate')">✕</button>
+        </div>
+        <form method="POST" action="/jadwal/preview">
+            <div class="modal-body">
+                <div style="background:var(--primary-light);border:1px solid #BFDBFE;border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:12.5px;color:var(--primary)">
+                    Sistem akan auto-generate jadwal OC dan Piket berdasarkan rolling state terakhir dan blackout yang sudah diinput.
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Bulan</label>
+                        <select name="bulan" class="form-select">
+                            {% for i, bn in enumerate(['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'], 1) %}
+                            <option value="{{ i }}" {% if i == bulan %}selected{% endif %}>{{ bn }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tahun</label>
+                        <input type="number" name="tahun" value="{{ tahun }}" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalGenerate')">Batal</button>
+                <button type="submit" class="btn btn-primary">Preview →</button>
             </div>
         </form>
     </div>

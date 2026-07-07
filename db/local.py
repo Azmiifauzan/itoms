@@ -136,6 +136,26 @@ def init_db():
                 UNIQUE(nama, tanggal, tipe)
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS blackout (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                whitelist_id INTEGER NOT NULL,
+                tanggal      TEXT NOT NULL,
+                keterangan   TEXT,
+                dibuat_oleh  INTEGER,
+                created_at   TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(whitelist_id, tanggal)
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS rolling_state (
+            tipe              TEXT PRIMARY KEY,
+            last_whitelist_id INTEGER,
+            updated_at        TEXT
+            )
+        """)
+        conn.execute("INSERT OR IGNORE INTO rolling_state (tipe, last_whitelist_id) VALUES ('oc', NULL)")
+        conn.execute("INSERT OR IGNORE INTO rolling_state (tipe, last_whitelist_id) VALUES ('piket', NULL)")
         conn.commit()
     logger.info(f"[DB Local] SQLite siap di {DB_PATH}")
 

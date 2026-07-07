@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Preview Jadwal{% endblock %}
+{% block page_title %}Preview Jadwal — {{ bulan_nama }} {{ tahun }}{% endblock %}
+
+{% block extra_style %}
+.preview-table{width:100%;border-collapse:collapse}
+.preview-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);background:var(--bg)}
+.preview-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.preview-table tr:last-child td{border-bottom:none}
+.preview-table tr:hover td{background:var(--bg-hover)}
+.date-chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;margin:1px}
+.chip-oc{background:#DBEAFE;color:#1D4ED8}
+.chip-piket{background:#DCFCE7;color:#15803D}
+.chip-merah{background:#FEE2E2;color:#DC2626}
+{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <div>
+        <div style="font-size:15px;font-weight:700">Preview Jadwal — {{ bulan_nama }} {{ tahun }}</div>
+        <div class="text-muted text-sm mt-1">Cek hasil generate sebelum disimpan</div>
+    </div>
+    <div class="flex gap-2">
+        <a href="/jadwal/?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-secondary">← Batal</a>
+        <form method="POST" action="/jadwal/simpan" style="display:inline">
+            <input type="hidden" name="tahun" value="{{ tahun }}">
+            <input type="hidden" name="bulan" value="{{ bulan }}">
+            <button type="submit" class="btn btn-primary">✅ Simpan & Terapkan</button>
+        </form>
+        <a href="/jadwal/download/excel?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-outline">⬇ Excel</a>
+    </div>
+</div>
+
+<div class="card" style="overflow:hidden">
+    <table class="preview-table">
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>No HP</th>
+                <th>Tanggal On Call Malam</th>
+                <th>Tanggal Piket Weekend / Libur</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for nama, data in ringkasan.items() %}
+            {% if data.oc or data.piket or data.oc_merah or data.piket_merah %}
+            <tr>
+                <td style="font-weight:600">{{ nama }}</td>
+                <td class="text-muted">{{ data.no_hp }}</td>
+                <td>
+                    {% for d in data.oc %}
+                    <span class="date-chip chip-oc">{{ d }}</span>
+                    {% endfor %}
+                    {% for d in data.oc_merah %}
+                    <span class="date-chip chip-merah" title="Perlu assign manual">{{ d }} ⚠</span>
+                    {% endfor %}
+                    {% if not data.oc and not data.oc_merah %}<span class="text-muted text-sm">—</span>{% endif %}
+                </td>
+                <td>
+                    {% for d in data.piket %}
+                    <span class="date-chip chip-piket">{{ d }}</span>
+                    {% endfor %}
+                    {% for d in data.piket_merah %}
+                    <span class="date-chip chip-merah" title="Perlu assign manual">{{ d }} ⚠</span>
+                    {% endfor %}
+                    {% if not data.piket and not data.piket_merah %}<span class="text-muted text-sm">—</span>{% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
