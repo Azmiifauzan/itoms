@@ -96,8 +96,7 @@ def index():
         whitelist=whitelist,
         today_str=date.today().strftime("%Y-%m-%d"),
         whitelist_all=whitelist_all,
-        blackout_list=blackout_list,
-        today_str=date.today().strftime("%Y-%m-%d"),
+        blackout_list=blackout_list,        
         )
 
 
