@@ -29,7 +29,7 @@ def init_db():
                 user_id     INTEGER PRIMARY KEY,
                 nama        TEXT NOT NULL,
                 added_by    INTEGER,
-                added_at    TEXT DEFAULT (datetime('now','localtime'))
+                added_at    TEXT DEFAULT (datetime('now','localtime')),
                 nama_jadwal TEXT,
                 telegram_user_id INTEGER,
                 no_hp       TEXT
