@@ -227,13 +227,14 @@
 </div>
 {% endif %}
 <!-- Modal Request Tanggal (Blackout) -->
-{% if can_edit %}
 <div class="modal-overlay" id="modalRequest" onclick="if(event.target===this)closeModal('modalRequest')">
     <div class="modal-box">
         <div class="modal-header">
-            <span class="modal-title">📅 Request Tanggal Tidak Bisa Bertugas</span>
+            <span class="modal-title">📅 Request Tanggal</span>
             <button class="btn-icon" onclick="closeModal('modalRequest')">✕</button>
         </div>
+
+        <!-- FORM TAMBAH: hanya bungkus bagian input, TIDAK bungkus list blackout -->
         <form method="POST" action="/jadwal/blackout/tambah">
             <input type="hidden" name="tahun" value="{{ tahun }}">
             <input type="hidden" name="bulan" value="{{ bulan }}">
@@ -261,31 +262,31 @@
                     <label class="form-label">Keterangan <span class="text-muted text-xs">(opsional)</span></label>
                     <input type="text" name="keterangan" class="form-control" placeholder="contoh: cuti, sakit, dll">
                 </div>
-
-                <!-- List blackout bulan ini -->
-                {% if blackout_list %}
-                <div style="margin-top:12px">
-                    <div class="form-label">Blackout bulan ini:</div>
-                    <div style="max-height:180px; overflow-y:auto; padding-right:4px;">
-                        {% for b in blackout_list %}
-                        <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-                            <span><b>{{ b.nama_user }}</b> — {{ b.tanggal }} {% if b.keterangan %}<span class="text-muted">({{ b.keterangan }})</span>{% endif %}</span>
-                            <form method="POST" action="/jadwal/blackout/hapus/{{ b.id }}" style="display:inline">
-                                <input type="hidden" name="tahun" value="{{ tahun }}">
-                                <input type="hidden" name="bulan" value="{{ bulan }}">
-                                <button type="submit" class="btn btn-danger-soft btn-xs">✕</button>
-                            </form>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="border-bottom:1px solid var(--border)">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modalRequest')">Tutup</button>
                 <button type="submit" class="btn btn-primary">Simpan Request</button>
             </div>
         </form>
+
+        <!-- LIST BLACKOUT: di luar form tambah, masing-masing punya form hapus sendiri -->
+        {% if blackout_list %}
+        <div class="modal-body" style="padding-top:12px">
+            <div class="form-label">Blackout bulan ini:</div>
+            <div style="max-height:180px; overflow-y:auto; padding-right:4px;">
+                {% for b in blackout_list %}
+                <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+                    <span><b>{{ b.nama_user }}</b> — {{ b.tanggal }} {% if b.keterangan %}<span class="text-muted">({{ b.keterangan }})</span>{% endif %}</span>
+                    <form method="POST" action="/jadwal/blackout/hapus/{{ b.id }}" style="display:inline">
+                        <input type="hidden" name="tahun" value="{{ tahun }}">
+                        <input type="hidden" name="bulan" value="{{ bulan }}">
+                        <button type="submit" class="btn btn-danger-soft btn-xs">✕</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
