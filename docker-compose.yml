@@ -21,6 +21,7 @@ services:
     network_mode: host
     volumes:
       - .:/app
+      - /mnt/data-internal:/app/data-internal 
     env_file:
       - .env
     restart: always

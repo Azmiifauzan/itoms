@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Penyimpanan{% endblock %}
+{% block page_title %}Penyimpanan{% endblock %}
+
+{% block extra_style %}
+.disk-bar-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px}
+.disk-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px}
+.disk-bar-track{height:8px;background:var(--bg-hover);border-radius:4px;overflow:hidden}
+.disk-bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--cyan));border-radius:4px;transition:width .3s}
+.disk-bar-fill.warn{background:linear-gradient(90deg,#F59E0B,#EF4444)}
+
+.storage-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
+.breadcrumb a{color:var(--primary);font-weight:500}
+.breadcrumb a:hover{text-decoration:underline}
+.breadcrumb-sep{color:var(--text-muted)}
+.storage-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.file-table{width:100%;border-collapse:collapse;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.file-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border)}
+.file-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+.file-table tr:last-child td{border-bottom:none}
+.file-table tr:hover td{background:var(--bg-hover)}
+.file-name-link{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:500}
+.file-icon{font-size:16px;flex-shrink:0}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13.5px}
+{% endblock %}
+
+{% block content %}
+<div class="disk-bar-wrap">
+    <div class="disk-bar-top">
+        <span class="font-semibold">Disk Penyimpanan (data-internal)</span>
+        <span class="text-muted">{{ disk.used }} / {{ disk.total }} terpakai — sisa <b class="text-primary">{{ disk.free }}</b></span>
+    </div>
+    <div class="disk-bar-track">
+        <div class="disk-bar-fill {% if disk.percent >= 85 %}warn{% endif %}" style="width:{{ disk.percent }}%"></div>
+    </div>
+</div>
+
+<div class="storage-toolbar">
+    <div class="breadcrumb">
+        <a href="/storage/">🏠 Root</a>
+        {% for label, crumb_path in breadcrumbs %}
+        <span class="breadcrumb-sep">/</span>
+        <a href="/storage/?path={{ crumb_path }}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    <div class="storage-actions">
+        <button class="btn btn-outline btn-sm" onclick="openModal('modalMkdir')">📁 Folder Baru</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalUploadFile')">⬆ Upload File</button>
+    </div>
+</div>
+
+<table class="file-table">
+    <thead>
+        <tr>
+            <th style="width:50%">Nama</th>
+            <th>Ukuran</th>
+            <th>Diubah</th>
+            <th style="text-align:right">Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if rel_path %}
+        {% set parent = rel_path.rsplit('/', 1)[0] if '/' in rel_path else '' %}
+        <tr>
+            <td colspan="4">
+                <a href="/storage/?path={{ parent }}" class="file-name-link">
+                    <span class="file-icon">↩</span> ..
+                </a>
+            </td>
+        </tr>
+        {% endif %}
+
+        {% for f in folders %}
+        <tr>
+            <td>
+                <a href="/storage/?path={{ f.rel_path }}" class="file-name-link">
+                    <span class="file-icon">📁</span> {{ f.name }}
+                </a>
+            </td>
+            <td class="text-muted">—</td>
+            <td class="text-muted">—</td>
+            <td>
+                <div class="row-actions">
+                    <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')">✎</button>
+                    <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', true)">✕</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% for f in files %}
+        <tr>
+            <td>
+                <span class="file-name-link">
+                    <span class="file-icon">📄</span> {{ f.name }}
+                </span>
+            </td>
+            <td class="text-muted">{{ f.size }}</td>
+            <td class="text-muted">{{ f.modified }}</td>
+            <td>
+                <div class="row-actions">
+                    <a href="/storage/download?path={{ f.rel_path }}" class="btn btn-outline btn-xs" title="Download">⬇</a>
+                    <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')">✎</button>
+                    <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', false)">✕</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not folders and not files %}
+        <tr>
+            <td colspan="4" class="empty-state">Folder ini kosong.</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+<!-- Modal Upload -->
+<div class="modal-overlay" id="modalUploadFile" onclick="if(event.target===this)closeModal('modalUploadFile')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">⬆ Upload File</span>
+            <button class="btn-icon" onclick="closeModal('modalUploadFile')">✕</button>
+        </div>
+        <form method="POST" action="/storage/upload" enctype="multipart/form-data">
+            <input type="hidden" name="path" value="{{ rel_path }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Pilih file (bisa lebih dari satu)</label>
+                    <input type="file" name="files" multiple required class="form-control">
+                </div>
+                <div class="form-hint">File akan diupload ke folder: <b>/{{ rel_path or 'root' }}</b></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalUploadFile')">Batal</button>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Buat Folder -->
+<div class="modal-overlay" id="modalMkdir" onclick="if(event.target===this)closeModal('modalMkdir')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">📁 Folder Baru</span>
+            <button class="btn-icon" onclick="closeModal('modalMkdir')">✕</button>
+        </div>
+        <form method="POST" action="/storage/mkdir">
+            <input type="hidden" name="path" value="{{ rel_path }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nama Folder</label>
+                    <input type="text" name="nama_folder" required class="form-control" placeholder="contoh: 2026">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalMkdir')">Batal</button>
+                <button type="submit" class="btn btn-primary">Buat</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Rename (dipakai bareng buat file & folder) -->
+<div class="modal-overlay" id="modalRename" onclick="if(event.target===this)closeModal('modalRename')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">✎ Ganti Nama</span>
+            <button class="btn-icon" onclick="closeModal('modalRename')">✕</button>
+        </div>
+        <form method="POST" action="/storage/rename" id="formRename">
+            <input type="hidden" name="path" id="renamePath">
+            <input type="hidden" name="old_name" id="renameOldName">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nama Baru</label>
+                    <input type="text" name="new_name" id="renameNewName" required class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalRename')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal-overlay" id="modalDelete" onclick="if(event.target===this)closeModal('modalDelete')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">Hapus?</span>
+            <button class="btn-icon" onclick="closeModal('modalDelete')">✕</button>
+        </div>
+        <form method="POST" action="/storage/delete" id="formDelete">
+            <input type="hidden" name="path" id="deletePath">
+            <input type="hidden" name="target_name" id="deleteTargetName">
+            <div class="modal-body">
+                <p id="deleteMessage">Yakin mau hapus item ini?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalDelete')">Batal</button>
+                <button type="submit" class="btn btn-danger-soft">Hapus</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function openRename(path, oldName) {
+    document.getElementById('renamePath').value = path;
+    document.getElementById('renameOldName').value = oldName;
+    document.getElementById('renameNewName').value = oldName;
+    openModal('modalRename');
+}
+function openDelete(path, targetName, isFolder) {
+    document.getElementById('deletePath').value = path;
+    document.getElementById('deleteTargetName').value = targetName;
+    document.getElementById('deleteMessage').textContent = isFolder
+        ? `Yakin mau hapus folder "${targetName}" beserta semua isinya? Ini gak bisa dibatalin.`
+        : `Yakin mau hapus file "${targetName}"? Ini gak bisa dibatalin.`;
+    openModal('modalDelete');
+}
+</script>
+{% endblock %}
