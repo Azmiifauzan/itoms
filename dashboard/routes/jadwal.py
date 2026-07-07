@@ -15,6 +15,12 @@ from db.local import get_conn, upsert_jadwal, delete_jadwal, get_jadwal_by_bulan
 
 jadwal_bp = Blueprint("jadwal", __name__, url_prefix="/jadwal")
 
+PIKET_LIMIT_KHUSUS = {
+    "Azmii": 1,
+    "Danu": 1,
+    "Cumey": 1,
+}
+
 def jadwal_required(func):
     from functools import wraps
     @wraps(func)
@@ -281,7 +287,7 @@ def hapus_blackout(bid):
 # Generate Jadwal
 # ──────────────────────────────────────────
 def _generate_jadwal(tahun: int, bulan: int) -> dict:
-    """Logic generate jadwal — return dict hasil per tanggal."""
+    """Logic generate jadwal — random tapi tetap merata, dengan limit khusus untuk beberapa nama."""
     import calendar as cal_module
     from datetime import timedelta
 
@@ -295,12 +301,6 @@ def _generate_jadwal(tahun: int, bulan: int) -> dict:
             JOIN whitelist w ON dp.whitelist_id = w.user_id
             ORDER BY dp.urutan
         """).fetchall()
-        oc_state = conn.execute(
-            "SELECT last_whitelist_id FROM rolling_state WHERE tipe = 'oc'"
-        ).fetchone()
-        piket_state = conn.execute(
-            "SELECT last_whitelist_id FROM rolling_state WHERE tipe = 'piket'"
-        ).fetchone()
 
     oc_ids = [r["user_id"] for r in oc_list]
     oc_names = {r["user_id"]: r["nama"] for r in oc_list}
@@ -309,12 +309,6 @@ def _generate_jadwal(tahun: int, bulan: int) -> dict:
 
     if not oc_ids:
         return {}
-
-    last_oc = oc_state["last_whitelist_id"] if oc_state else None
-    last_piket = piket_state["last_whitelist_id"] if piket_state else None
-
-    oc_start = (oc_ids.index(last_oc) + 1) % len(oc_ids) if last_oc and last_oc in oc_ids else 0
-    piket_start = (piket_ids.index(last_piket) + 1) % len(piket_ids) if last_piket and last_piket in piket_ids else 0
 
     hari_libur = get_hari_libur(tahun)
 
@@ -330,8 +324,15 @@ def _generate_jadwal(tahun: int, bulan: int) -> dict:
 
     _, days = cal_module.monthrange(tahun, bulan)
     result = {}
-    oc_idx = oc_start
-    piket_idx = piket_start
+
+    # counter buat nge-track berapa kali tiap orang kebagian, biar random tapi merata
+    oc_count = {uid: 0 for uid in oc_ids}
+    piket_count = {uid: 0 for uid in piket_ids}
+
+    def limit_piket_untuk(uid):
+        """Return limit khusus buat user ini, atau None kalau gak dibatasi."""
+        nama = piket_names.get(uid)
+        return PIKET_LIMIT_KHUSUS.get(nama)
 
     for day in range(1, days + 1):
         tgl = f"{tahun}-{bulan:02d}-{day:02d}"
@@ -345,33 +346,41 @@ def _generate_jadwal(tahun: int, bulan: int) -> dict:
             "piket": None, "piket_wid": None, "piket_merah": False
         }
 
-        # Generate Piket
+        # ── Generate Piket (random, merata, respect limit khusus) ──
+        piket_today = None
         if need_piket and piket_ids:
-            assigned = False
-            for _ in range(len(piket_ids)):
-                candidate = piket_ids[piket_idx % len(piket_ids)]
-                piket_idx += 1
-                if tgl not in blackout.get(candidate, set()):
-                    result[tgl]["piket"] = piket_names[candidate]
-                    result[tgl]["piket_wid"] = candidate
-                    assigned = True
-                    break
-            if not assigned:
+            kandidat = [
+                uid for uid in piket_ids
+                if tgl not in blackout.get(uid, set())
+                and (limit_piket_untuk(uid) is None or piket_count[uid] < limit_piket_untuk(uid))
+            ]
+            if kandidat:
+                # ambil yang jumlah tugasnya paling sedikit dulu, baru random di antara yang seri
+                min_count = min(piket_count[uid] for uid in kandidat)
+                paling_sedikit = [uid for uid in kandidat if piket_count[uid] == min_count]
+                pilih = random.choice(paling_sedikit)
+                result[tgl]["piket"] = piket_names[pilih]
+                result[tgl]["piket_wid"] = pilih
+                piket_count[pilih] += 1
+                piket_today = pilih
+            else:
                 result[tgl]["piket_merah"] = True
 
-        # Generate OC
+        # ── Generate OC (random, merata, gak boleh sama dengan piket hari ini) ──
         if oc_ids:
-            assigned = False
-            piket_today = result[tgl].get("piket_wid")
-            for _ in range(len(oc_ids)):
-                candidate = oc_ids[oc_idx % len(oc_ids)]
-                oc_idx += 1
-                if tgl not in blackout.get(candidate, set()) and candidate != piket_today:
-                    result[tgl]["oc"] = oc_names[candidate]
-                    result[tgl]["oc_wid"] = candidate
-                    assigned = True
-                    break
-            if not assigned:
+            kandidat = [
+                uid for uid in oc_ids
+                if tgl not in blackout.get(uid, set())
+                and uid != piket_today
+            ]
+            if kandidat:
+                min_count = min(oc_count[uid] for uid in kandidat)
+                paling_sedikit = [uid for uid in kandidat if oc_count[uid] == min_count]
+                pilih = random.choice(paling_sedikit)
+                result[tgl]["oc"] = oc_names[pilih]
+                result[tgl]["oc_wid"] = pilih
+                oc_count[pilih] += 1
+            else:
                 result[tgl]["oc_merah"] = True
 
     return result
