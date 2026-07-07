@@ -15,7 +15,6 @@ from dashboard.routes.support import support_bp
 from dashboard.routes.programmer import programmer_bp
 from dashboard.routes.jadwal import jadwal_bp
 from dashboard.routes.superadmin import superadmin_bp
-from dashboard.routes.generate import generate_bp
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "ganti-ini-dengan-random-string")
@@ -27,7 +26,6 @@ app.register_blueprint(support_bp)
 app.register_blueprint(programmer_bp)
 app.register_blueprint(jadwal_bp)
 app.register_blueprint(superadmin_bp)
-app.register_blueprint(generate_bp)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7770, debug=False)
