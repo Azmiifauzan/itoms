@@ -26,7 +26,7 @@ def jadwal_required(func):
 
 def can_edit():
     """"cek boleh edit apa ga."""
-    return session.get("role") in ("manager", "kepala_support")
+    return session.get("role") in ("manager", "kepala_support","superadmin")
 
 def get_hari_libur(tahun: int) -> dict:
     """Ambil hari libur dari database lokal."""
