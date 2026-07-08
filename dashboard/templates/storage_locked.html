@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Terkunci{% endblock %}
+{% block page_title %}Penyimpanan{% endblock %}
+
+{% block extra_style %}
+.locked-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
+.locked-icon{color:var(--text-muted);margin-bottom:16px}
+.locked-icon.danger{color:var(--danger)}
+.locked-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.locked-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;max-width:320px}
+.locked-form{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px}
+.locked-error{font-size:12.5px;color:var(--danger);margin-top:-4px}
+{% endblock %}
+
+{% block content %}
+<div class="locked-wrap">
+    {% if mode == 'denied' %}
+    <div class="locked-icon danger">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><path d="M12 16v2"/></svg>
+    </div>
+    <div class="locked-title">Folder ini privat</div>
+    <div class="locked-sub">Folder ini cuma bisa diakses oleh pemiliknya. Kamu gak punya izin buat melihat isinya.</div>
+    <a href="/storage/" class="btn btn-secondary btn-sm">Kembali ke Root</a>
+    {% else %}
+    <div class="locked-icon">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="locked-title">Folder ini dikunci password</div>
+    <div class="locked-sub">Masukkan password untuk membuka folder ini.</div>
+    <form method="POST" action="/storage/unlock" class="locked-form">
+        <input type="hidden" name="path" value="{{ rel_path }}">
+        <input type="password" name="password" class="form-control" placeholder="Password" required autofocus>
+        {% if error %}<div class="locked-error">{{ error }}</div>{% endif %}
+        <button type="submit" class="btn btn-primary">Buka Folder</button>
+        <a href="/storage/" class="btn btn-secondary btn-sm">Batal</a>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
