@@ -20,7 +20,11 @@ from dashboard.routes.storage import storage_bp
 
 app = Flask(__name__, template_folder="templates")
 app.jinja_env.globals.update(enumerate=enumerate)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "ganti-ini-dengan-random-string")
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError(
+        "TAKDE SECRET KEY"                     
+    )
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024 * 1024
 
 
