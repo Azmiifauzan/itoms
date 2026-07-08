@@ -265,3 +265,51 @@ def hapus_whitelist(user_id):
         conn.execute("DELETE FROM whitelist WHERE user_id = ?", (user_id,))
         conn.commit()
     return redirect(url_for("superadmin.whitelist"))
+
+@superadmin_bp.route("/profile")
+@login_required
+@superadmin_required
+def profile():
+    user = get_current_user()
+    return render_template("profile.html", user=user)
+
+
+@superadmin_bp.route("/profile/ganti-password", methods=["POST"])
+@login_required
+@superadmin_required
+def ganti_password():
+    import hashlib
+    user = get_current_user()
+    password_lama = request.form.get("password_lama", "").strip()
+    password_baru = request.form.get("password_baru", "").strip()
+
+    hash_lama = hashlib.sha256(password_lama.encode()).hexdigest()
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM users_dashboard WHERE id = ? AND password_hash = ?",
+            (user["id"], hash_lama)
+        ).fetchone()
+        if row and password_baru:
+            conn.execute(
+                "UPDATE users_dashboard SET password_hash = ? WHERE id = ?",
+                (hashlib.sha256(password_baru.encode()).hexdigest(), user["id"])
+            )
+            conn.commit()
+    return redirect(url_for("superadmin.profile"))
+
+
+@superadmin_bp.route("/profile/edit-nama", methods=["POST"])
+@login_required
+@superadmin_required
+def edit_nama():
+    user = get_current_user()
+    nama_baru = request.form.get("nama", "").strip()
+    if nama_baru:
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE users_dashboard SET nama = ? WHERE id = ?",
+                (nama_baru, user["id"])
+            )
+            conn.commit()
+        session["nama"] = nama_baru
+    return redirect(url_for("superadmin.profile"))
