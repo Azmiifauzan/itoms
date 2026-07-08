@@ -24,6 +24,10 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "ganti-ini-dengan-random-string")
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024 * 1024
 
 
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
+
+
 SESSION_TIMEOUT_MENIT = 30
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=SESSION_TIMEOUT_MENIT)
 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
