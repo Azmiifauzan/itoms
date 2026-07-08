@@ -1,25 +1,29 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Hari Libur{% endblock %}
 {% block page_title %}Kelola Hari Libur{% endblock %}
 
 {% block extra_style %}
-.libur-table{width:100%;border-collapse:collapse}
+.table-scroll{overflow-x:auto;border-radius:var(--radius)}
+.libur-table{width:100%;border-collapse:collapse;min-width:480px}
 .libur-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)}
 .libur-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
 .libur-table tr:last-child td{border-bottom:none}
 .libur-table tr:hover td{background:var(--bg-hover)}
-.year-tab{display:inline-flex;align-items:center;padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:1px solid var(--border);color:var(--text-muted);transition:all .15s}
+.year-tab{display:inline-flex;align-items:center;padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:1px solid var(--border);color:var(--text-muted);transition:all .15s}
 .year-tab:hover{background:var(--bg-hover);color:var(--text)}
 .year-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.libur-date{font-family:monospace;font-size:12.5px;font-weight:700;color:var(--danger)}
+.libur-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block}
 {% endblock %}
 
 {% block content %}
-<div class="flex-between mb-4">
+<div class="flex-between mb-4" style="flex-wrap:wrap;gap:12px">
     <div>
-        <div style="font-size:15px;font-weight:700">🗓️ Hari Libur Nasional</div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.i('calendar-check', 17) }} Hari Libur Nasional</div>
         <div class="text-muted text-sm mt-1">Data tanggal merah untuk kalender jadwal</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('modalTambah')">+ Tambah Tanggal</button>
+    <button class="btn btn-primary" onclick="openModal('modalTambah')">{{ icons.i('plus', 14) }} Tambah Tanggal</button>
 </div>
 
 <!-- Year tabs -->
@@ -30,31 +34,25 @@
 </div>
 
 <div class="card" style="overflow:hidden">
+    <div class="table-scroll">
     <table class="libur-table">
         <thead>
             <tr>
                 <th>Tanggal</th>
                 <th>Nama Hari Libur</th>
-                <th>Hari</th>
+                <th>Status</th>
                 <th style="text-align:right">Aksi</th>
             </tr>
         </thead>
         <tbody>
             {% for l in libur_list %}
-            {% set days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] %}
             <tr>
-                <td>
-                    <span style="font-family:monospace;font-size:13px;font-weight:600;color:var(--danger)">{{ l.tanggal }}</span>
-                </td>
+                <td><span class="libur-date">{{ l.tanggal }}</span></td>
                 <td>{{ l.nama }}</td>
-                <td>
-                    <span class="badge" style="background:#FEE2E2;color:#DC2626">
-                        🔴
-                    </span>
-                </td>
+                <td><span class="badge" style="background:var(--danger-bg);color:var(--danger)"><span class="libur-dot"></span>Libur</span></td>
                 <td style="text-align:right">
                     <form method="POST" action="/superadmin/libur/hapus/{{ l.id }}" style="display:inline" onsubmit="return confirm('Hapus {{ l.nama }}?')">
-                        <button type="submit" class="btn btn-danger-soft btn-xs">Hapus</button>
+                        <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('trash', 12) }} Hapus</button>
                     </form>
                 </td>
             </tr>
@@ -67,14 +65,15 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 
 <!-- Modal Tambah -->
 <div class="modal-overlay" id="modalTambah" onclick="if(event.target===this)closeModal('modalTambah')">
     <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
-            <span class="modal-title">Tambah Hari Libur</span>
-            <button class="btn-icon" onclick="closeModal('modalTambah')">✕</button>
+            <span class="modal-title">{{ icons.i('calendar-check', 16) }} Tambah Hari Libur</span>
+            <button class="btn-icon" onclick="closeModal('modalTambah')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/superadmin/libur/tambah">
             <div class="modal-body">

@@ -1,84 +1,93 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_style %}
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-@media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
-.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 20px 16px;cursor:pointer;transition:box-shadow .2s,transform .15s,border-color .2s;position:relative;overflow:hidden}
-.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}
+@media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr);gap:12px}}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 15px;cursor:pointer;transition:box-shadow .2s,transform .15s,border-color .2s;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;opacity:.9}
 .stat-card.s-total::after{background:var(--primary)}
 .stat-card.s-open::after{background:var(--warning)}
 .stat-card.s-prog::after{background:var(--cyan)}
 .stat-card.s-done::after{background:var(--success)}
 .stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
-.stat-card.active-filter{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.stat-icon-bg{position:absolute;right:16px;top:16px;font-size:26px;opacity:.1}
-.stat-label{font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;letter-spacing:.01em}
-.stat-num{font-size:34px;font-weight:800;line-height:1;letter-spacing:-1.5px}
+.stat-card.active-filter{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.14)}
+.stat-icon-bg{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.s-total .stat-icon-bg{background:var(--primary-light);color:var(--primary)}
+.s-open .stat-icon-bg{background:var(--warning-bg);color:var(--warning)}
+.s-prog .stat-icon-bg{background:rgba(6,182,212,.12);color:var(--cyan)}
+.s-done .stat-icon-bg{background:var(--success-bg);color:var(--success)}
+.stat-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;letter-spacing:.01em}
+.stat-num{font-family:var(--font-display);font-size:32px;font-weight:800;line-height:1;letter-spacing:-1px}
 .s-total .stat-num{color:var(--primary)}
 .s-open  .stat-num{color:var(--warning)}
 .s-prog  .stat-num{color:var(--cyan)}
 .s-done  .stat-num{color:var(--success)}
 
-.content-grid{display:grid;grid-template-columns:1fr 296px;gap:24px;align-items:start}
+.content-grid{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
 @media(max-width:1100px){.content-grid{grid-template-columns:1fr}}
 
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.section-title{font-size:14px;font-weight:700;letter-spacing:-.2px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:13.5px;font-weight:700;letter-spacing:-.1px;display:flex;align-items:center;gap:7px;color:var(--text)}
+.section-title .icon{color:var(--text-muted)}
 
 .task-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;transition:box-shadow .2s,transform .15s,border-color .15s}
 .task-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);border-color:#CBD5E1}
-.task-title{font-size:13.5px;font-weight:600;color:var(--primary);transition:color .15s}
-.task-title:hover{color:#1D4ED8}
-.task-meta{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+.task-title{font-size:13.5px;font-weight:700;color:var(--text);transition:color .15s}
+.task-title:hover{color:var(--primary)}
+.task-meta{font-size:11.5px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .task-footer{display:flex;align-items:center;gap:8px;margin-top:10px}
 .prog-wrap{flex:1}
-.prog-bg{height:5px;background:var(--border);border-radius:10px;overflow:hidden}
+.prog-bg{height:5px;background:var(--bg-hover);border-radius:10px;overflow:hidden}
 .prog-fill{height:100%;border-radius:10px;transition:width .4s ease}
 .prog-fill.c-done{background:var(--success)}
 .prog-fill.c-prog{background:var(--primary)}
 .prog-fill.c-empty{background:var(--border)}
-.prog-pct{font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap}
+.prog-pct{font-size:11px;font-weight:700;color:var(--text-muted);white-space:nowrap;min-width:32px;text-align:right}
 
 .rank-card{overflow:hidden}
 .rank-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);transition:background .15s}
 .rank-item:last-child{border-bottom:none}
 .rank-item:hover{background:var(--bg-hover)}
-.rank-pos{font-size:17px;width:26px;text-align:center;flex-shrink:0}
-.rank-pos-num{font-size:12px;font-weight:600;color:var(--text-muted);width:26px;text-align:center;flex-shrink:0}
+.rank-pos{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:800;color:#fff}
+.rank-pos.p1{background:linear-gradient(135deg,#F5B93B,#E08E1C)}
+.rank-pos.p2{background:linear-gradient(135deg,#B8C2D1,#8A93A6)}
+.rank-pos.p3{background:linear-gradient(135deg,#D08B5C,#A9603A)}
+.rank-pos-num{font-size:12px;font-weight:700;color:var(--text-muted);width:24px;text-align:center;flex-shrink:0}
 .rank-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
-.rank-name{flex:1;font-size:13px;font-weight:500;truncate:nowrap}
-.rank-score{font-size:13px;font-weight:700;color:var(--primary)}
+.rank-name{flex:1;font-size:13px;font-weight:600;truncate:nowrap}
+.rank-score{font-size:13px;font-weight:800;color:var(--primary)}
 
 .komplain-card{background:linear-gradient(135deg,#B91C1C,#EF4444);border-radius:var(--radius);padding:20px;color:#fff;position:relative;overflow:hidden;margin-top:16px}
-.komplain-card::after{content:'🚨';position:absolute;right:12px;bottom:8px;font-size:50px;opacity:.15;line-height:1}
-.komplain-num{font-size:44px;font-weight:900;line-height:1;letter-spacing:-2px}
-.komplain-label{font-size:12px;opacity:.8;margin-top:4px}
+.komplain-card .icon{position:absolute;right:14px;bottom:12px;opacity:.25;width:52px;height:52px}
+.komplain-num{font-family:var(--font-display);font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px}
+.komplain-label{font-size:12px;opacity:.85;margin-top:4px;font-weight:500}
 
 .empty-state{text-align:center;padding:36px 20px;color:var(--text-muted)}
-.empty-icon{font-size:32px;opacity:.3;margin-bottom:8px}
+.empty-state .icon{opacity:.35;margin-bottom:8px}
 {% endblock %}
 
 {% block content %}
 <div class="stat-grid">
     <div class="stat-card s-total" onclick="filterTask('all')" id="filter-all">
-        <div class="stat-icon-bg">📋</div>
+        <div class="stat-icon-bg">{{ icons.i('list', 17) }}</div>
         <div class="stat-label">Total Task</div>
         <div class="stat-num">{{ stats.total_task }}</div>
     </div>
     <div class="stat-card s-open" onclick="filterTask('open')" id="filter-open">
-        <div class="stat-icon-bg">⏳</div>
+        <div class="stat-icon-bg">{{ icons.i('clock', 17) }}</div>
         <div class="stat-label">Open</div>
         <div class="stat-num">{{ stats.open }}</div>
     </div>
     <div class="stat-card s-prog" onclick="filterTask('on_progress')" id="filter-on_progress">
-        <div class="stat-icon-bg">🔄</div>
+        <div class="stat-icon-bg">{{ icons.i('refresh', 17) }}</div>
         <div class="stat-label">On Progress</div>
         <div class="stat-num">{{ stats.on_progress }}</div>
     </div>
     <div class="stat-card s-done" onclick="filterTask('done')" id="filter-done">
-        <div class="stat-icon-bg">✅</div>
+        <div class="stat-icon-bg">{{ icons.i('check-circle', 17) }}</div>
         <div class="stat-label">Done</div>
         <div class="stat-num">{{ stats.done }}</div>
     </div>
@@ -87,8 +96,8 @@
 <div class="content-grid">
     <div>
         <div class="section-head">
-            <span class="section-title">Task</span>
-            <button class="btn btn-primary btn-sm" onclick="openModal('modalTask')">+ Buat Task</button>
+            <span class="section-title">{{ icons.i('list', 15) }} Task</span>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modalTask')">{{ icons.i('plus') }} Buat Task</button>
         </div>
 
         {% for task in tasks %}
@@ -97,7 +106,8 @@
                 <div style="flex:1;min-width:0;padding-right:12px">
                     <a href="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}" class="task-title">{{ task.judul }}</a>
                     <div class="task-meta">
-                        oleh {{ task.dibuat_oleh_nama or '-' }}{% if task.deadline %} · 📅 {{ task.deadline }}{% endif %}
+                        <span>oleh {{ task.dibuat_oleh_nama or '-' }}</span>
+                        {% if task.deadline %}<span>·</span><span class="flex-center gap-2">{{ icons.i('calendar', 12) }} {{ task.deadline }}</span>{% endif %}
                     </div>
                 </div>
                 <div class="flex gap-2" style="flex-shrink:0">
@@ -118,20 +128,20 @@
         </div>
         {% else %}
         <div class="card">
-            <div class="empty-state"><div class="empty-icon">📋</div><div>Belum ada task</div></div>
+            <div class="empty-state">{{ icons.i('list', 30) }}<div>Belum ada task</div></div>
         </div>
         {% endfor %}
     </div>
 
     {% if ranking is defined %}
     <div>
-        <div class="section-head"><span class="section-title">🏆 Ranking Responder</span></div>
+        <div class="section-head"><span class="section-title">{{ icons.i('trophy', 15) }} Ranking Responder</span></div>
         <div class="card rank-card">
             {% for r in ranking %}
             <div class="rank-item">
-                {% if loop.index == 1 %}<span class="rank-pos">🥇</span>
-                {% elif loop.index == 2 %}<span class="rank-pos">🥈</span>
-                {% elif loop.index == 3 %}<span class="rank-pos">🥉</span>
+                {% if loop.index == 1 %}<span class="rank-pos p1">1</span>
+                {% elif loop.index == 2 %}<span class="rank-pos p2">2</span>
+                {% elif loop.index == 3 %}<span class="rank-pos p3">3</span>
                 {% else %}<span class="rank-pos-num">{{ loop.index }}</span>{% endif %}
                 <div class="rank-av">{{ (r.responder_nama or '?')[0].upper() }}</div>
                 <span class="rank-name truncate">{{ r.responder_nama }}</span>
@@ -143,8 +153,9 @@
         </div>
 
         {% if stats.komplain_hari_ini is defined %}
-        <div class="section-head mt-6"><span class="section-title">Komplain Hari Ini</span></div>
+        <div class="section-head mt-6"><span class="section-title">{{ icons.i('alert-triangle', 15) }} Komplain Hari Ini</span></div>
         <div class="komplain-card">
+            {{ icons.i('alert-triangle', 52) }}
             <div class="komplain-num">{{ stats.komplain_hari_ini }}</div>
             <div class="komplain-label">komplain masuk hari ini</div>
         </div>
@@ -158,7 +169,7 @@
     <div class="modal-box">
         <div class="modal-header">
             <span class="modal-title">Buat Task Baru</span>
-            <button class="btn-icon" onclick="closeModal('modalTask')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalTask')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/buat">
             <div class="modal-body">

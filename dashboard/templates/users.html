@@ -1,45 +1,47 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Kelola User{% endblock %}
 {% block page_title %}Kelola User{% endblock %}
 
 {% block extra_style %}
-.users-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.users-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
 .users-count{font-size:13px;color:var(--text-muted)}
 
-.user-table{width:100%;border-collapse:collapse}
-.user-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
+.table-scroll{overflow-x:auto;border-radius:var(--radius)}
+.user-table{width:100%;border-collapse:collapse;min-width:520px}
+.user-table th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
 .user-table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
 .user-table tr:last-child td{border-bottom:none}
 .user-table tr:hover td{background:var(--bg-hover)}
 
 .user-info-cell{display:flex;align-items:center;gap:10px}
 .user-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
-.user-av-name{font-weight:600;font-size:13.5px}
+.user-av-name{font-weight:700;font-size:13.5px}
 .user-av-sub{font-size:11.5px;color:var(--text-muted)}
 
 .action-group{display:flex;align-items:center;gap:6px;justify-content:flex-end}
 
-.tg-id{font-family:monospace;font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:4px;color:var(--text-muted)}
+.tg-id{font-family:monospace;font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:5px;color:var(--text-muted)}
 .tg-empty{color:var(--text-muted);font-size:12px}
 
 .created-at{font-size:12px;color:var(--text-muted)}
 
 @media(max-width:768px){
     .col-hide{display:none}
-    .action-group{flex-direction:column;align-items:flex-end}
 }
 {% endblock %}
 
 {% block content %}
 <div class="users-toolbar">
     <div>
-        <div class="section-title" style="font-size:15px;font-weight:700">👥 Kelola User</div>
+        <div class="section-title" style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.i('users', 17) }} Kelola User</div>
         <div class="users-count mt-1">{{ users|length }} user terdaftar</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('modalTambah')">+ Tambah User</button>
+    <button class="btn btn-primary" onclick="openModal('modalTambah')">{{ icons.i('plus', 14) }} Tambah User</button>
 </div>
 
 <div class="card" style="overflow:hidden">
+    <div class="table-scroll">
     <table class="user-table">
         <thead>
             <tr>
@@ -80,11 +82,11 @@
                 <td>
                     <div class="action-group">
                         <button class="btn btn-outline btn-xs" onclick="openModal('modalReset{{ u.id }}')">
-                            🔑 Reset PW
+                            {{ icons.i('key', 12) }} Reset PW
                         </button>
                         {% if u.id != session.get('user_id') %}
                         <form method="POST" action="/manager/users/{{ u.id }}/hapus" style="display:inline" onsubmit="return confirm('Hapus user {{ u.nama }}?')">
-                            <button type="submit" class="btn btn-danger-soft btn-xs">🗑 Hapus</button>
+                            <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('trash', 12) }} Hapus</button>
                         </form>
                         {% endif %}
                     </div>
@@ -97,6 +99,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 
 <!-- Modal Reset Password per user -->
@@ -105,14 +108,14 @@
     <div class="modal-box" style="max-width:380px">
         <div class="modal-header">
             <span class="modal-title">Reset Password</span>
-            <button class="btn-icon" onclick="closeModal('modalReset{{ u.id }}')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalReset{{ u.id }}')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/manager/users/{{ u.id }}/reset">
             <div class="modal-body">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:var(--bg-hover);border-radius:var(--radius-sm)">
                     <div class="user-av" style="width:36px;height:36px">{{ (u.nama or 'U')[0].upper() }}</div>
                     <div>
-                        <div style="font-weight:600;font-size:13.5px">{{ u.nama }}</div>
+                        <div style="font-weight:700;font-size:13.5px">{{ u.nama }}</div>
                         <div style="font-size:11.5px;color:var(--text-muted)">@{{ u.username }}</div>
                     </div>
                 </div>
@@ -135,7 +138,7 @@
     <div class="modal-box modal-box-lg">
         <div class="modal-header">
             <span class="modal-title">Tambah User Baru</span>
-            <button class="btn-icon" onclick="closeModal('modalTambah')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalTambah')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/manager/users/tambah">
             <div class="modal-body">

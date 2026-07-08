@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Jadwal{% endblock %}
 {% block page_title %}Jadwal OC / Piket{% endblock %}
 
 {% block extra_style %}
-.jadwal-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.jadwal-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
 .month-nav{display:flex;align-items:center;gap:10px}
-.month-label{font-size:16px;font-weight:700;min-width:160px;text-align:center;letter-spacing:-.3px}
-.nav-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .15s;text-decoration:none}
+.month-label{font-family:var(--font-display);font-size:15.5px;font-weight:700;min-width:150px;text-align:center;letter-spacing:-.2px}
+.nav-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;text-decoration:none}
 .nav-btn:hover{background:var(--bg-hover)}
 .jadwal-actions{display:flex;gap:8px;flex-wrap:wrap}
 
@@ -19,44 +20,48 @@
 .cal-cell:nth-child(7n){border-right:none}
 .cal-cell.c-empty{background:var(--bg);border-color:var(--border)}
 .cal-cell.c-weekend{background:rgba(239,68,68,.04)}
-.cal-cell.c-libur{background:rgba(239,68,68,.09)}
-.cal-cell.c-today{background:rgba(37,99,235,.05)}
+.cal-cell.c-libur{background:rgba(239,68,68,.08)}
+.cal-cell.c-today{background:rgba(37,99,235,.06)}
 .cal-cell:not(.c-empty):hover{background:var(--bg-hover)}
 
-.cal-date{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:3px}
+.cal-date{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:4px}
 .cal-cell.c-weekend .cal-date,.cal-cell.c-libur .cal-date{color:var(--danger)}
 .cal-cell.c-today .cal-date-num{
     background:var(--primary);
     color:#fff;
-    width:22px;height:22px;
+    width:21px;height:21px;
     border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     font-size:11px;
 }
-.libur-name{font-size:9px;color:var(--danger);opacity:.75;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-bottom:3px}
+.libur-dot{color:var(--danger);display:flex}
+.libur-name{font-size:9px;color:var(--danger);opacity:.8;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-bottom:3px}
 
-.chip-group-label{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.6;margin-top:3px;margin-bottom:1px}
+.chip-group-label{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.65;margin-top:3px;margin-bottom:1px}
 .chip-group-label.oc{color:#1D4ED8}
 .chip-group-label.piket{color:#15803D}
 .chip-group-label.off{color:#64748B}
 
-.chip{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:500;padding:2px 5px;border-radius:4px;margin-bottom:2px;gap:2px;line-height:1.3}
+.chip{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:600;padding:2px 5px;border-radius:5px;margin-bottom:2px;gap:2px;line-height:1.3}
 .chip.oc{background:#DBEAFE;color:#1D4ED8}
 .chip.piket{background:#DCFCE7;color:#15803D}
-.chip.off{background:#F1F5F9;color:#64748B}
+.chip.off{background:var(--bg-hover);color:var(--text-muted)}
 .chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chip-del{background:none;border:none;cursor:pointer;color:inherit;opacity:.45;font-size:9px;padding:0 1px;line-height:1;flex-shrink:0;transition:opacity .15s}
+.chip-del{background:none;border:none;cursor:pointer;color:inherit;opacity:.5;padding:0 1px;line-height:1;flex-shrink:0;transition:opacity .15s;display:flex}
 .chip-del:hover{opacity:1}
 
-.legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.legend{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)}
 .legend-dot{width:10px;height:10px;border-radius:3px}
 
 @media(max-width:768px){
-    .cal-cell{min-height:60px;padding:4px}
+    .cal-cell{min-height:64px;padding:4px}
     .cal-date{font-size:11px}
-    .chip{font-size:9px;padding:1px 3px}
-    .month-label{font-size:14px;min-width:130px}
+    .libur-name{display:none}
+    .chip{font-size:8.5px;padding:1px 3px}
+    .chip-group-label{display:none}
+    .month-label{font-size:14px;min-width:120px}
+    .cal-head-cell{font-size:9px;padding:8px 2px}
 }
 {% endblock %}
 
@@ -67,18 +72,18 @@
         {% set prev_tahun = tahun if bulan > 1 else tahun - 1 %}
         {% set next_bulan = bulan + 1 if bulan < 12 else 1 %}
         {% set next_tahun = tahun if bulan < 12 else tahun + 1 %}
-        <a href="/jadwal/?tahun={{ prev_tahun }}&bulan={{ prev_bulan }}" class="nav-btn">←</a>
+        <a href="/jadwal/?tahun={{ prev_tahun }}&bulan={{ prev_bulan }}" class="nav-btn">{{ icons.i('chevron-left', 16) }}</a>
         <span class="month-label">{{ bulan_nama }} {{ tahun }}</span>
-        <a href="/jadwal/?tahun={{ next_tahun }}&bulan={{ next_bulan }}" class="nav-btn">→</a>
+        <a href="/jadwal/?tahun={{ next_tahun }}&bulan={{ next_bulan }}" class="nav-btn">{{ icons.i('chevron-right', 16) }}</a>
     </div>
     {% if can_edit %}
     <div class="jadwal-actions">
-        <a href="/jadwal/template" class="btn btn-outline btn-sm">⬇ Template</a>
-        <button class="btn btn-outline btn-sm" onclick="openModal('modalUpload')">⬆ Upload Excel</button>
-        <button class="btn btn-outline btn-sm" onclick="openModal('modalRequest')">📅 Request Tanggal</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modalGenerate')">⚡ Generate Jadwal</button>
-        <a href="/jadwal/download/excel?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-outline btn-sm">⬇ Excel</a>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modalTambah')">+ Input Manual</button>
+        <a href="/jadwal/template" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Template</a>
+        <button class="btn btn-outline btn-sm" onclick="openModal('modalUpload')">{{ icons.i('upload', 14) }} Upload Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="openModal('modalRequest')">{{ icons.i('calendar', 14) }} Request Tanggal</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalGenerate')">{{ icons.i('zap', 14) }} Generate Jadwal</button>
+        <a href="/jadwal/download/excel?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Excel</a>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalTambah')">{{ icons.i('plus', 14) }} Input Manual</button>
     </div>
     {% endif %}
 </div>
@@ -105,7 +110,7 @@
         <div class="cal-cell {% if is_libur %}c-libur{% elif is_weekend %}c-weekend{% endif %} {% if is_today %}c-today{% endif %}">
             <div class="cal-date">
                 <span class="cal-date-num">{{ day }}</span>
-                {% if is_libur %}<span title="{{ hari_libur[tgl] }}">🔴</span>{% endif %}
+                {% if is_libur %}<span class="libur-dot" title="{{ hari_libur[tgl] }}">{{ icons.i('calendar-check', 11) }}</span>{% endif %}
             </div>
             {% if is_libur %}<div class="libur-name">{{ hari_libur[tgl] }}</div>{% endif %}
 
@@ -116,7 +121,7 @@
                 <span class="chip-name">{{ j.nama }}</span>
                 {% if can_edit %}
                 <form method="POST" action="/jadwal/hapus/{{ j.id }}" style="display:inline;margin:0;padding:0">
-                    <button type="submit" class="chip-del" title="Hapus">✕</button>
+                    <button type="submit" class="chip-del" title="Hapus">{{ icons.i('x', 9) }}</button>
                 </form>
                 {% endif %}
             </div>
@@ -130,7 +135,7 @@
                 <span class="chip-name">{{ j.nama }}</span>
                 {% if can_edit %}
                 <form method="POST" action="/jadwal/hapus/{{ j.id }}" style="display:inline;margin:0;padding:0">
-                    <button type="submit" class="chip-del" title="Hapus">✕</button>
+                    <button type="submit" class="chip-del" title="Hapus">{{ icons.i('x', 9) }}</button>
                 </form>
                 {% endif %}
             </div>
@@ -144,7 +149,7 @@
                 <span class="chip-name">{{ j.nama }}</span>
                 {% if can_edit %}
                 <form method="POST" action="/jadwal/hapus/{{ j.id }}" style="display:inline;margin:0;padding:0">
-                    <button type="submit" class="chip-del" title="Hapus">✕</button>
+                    <button type="submit" class="chip-del" title="Hapus">{{ icons.i('x', 9) }}</button>
                 </form>
                 {% endif %}
             </div>
@@ -158,7 +163,7 @@
 <div class="legend">
     <div class="legend-item"><div class="legend-dot" style="background:#DBEAFE"></div>OC</div>
     <div class="legend-item"><div class="legend-dot" style="background:#DCFCE7"></div>Piket</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#F1F5F9"></div>Off</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--bg-hover)"></div>Off</div>
     <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,.2);border:1px solid #EF4444"></div>Libur / Weekend</div>
     <div class="legend-item"><div class="legend-dot" style="background:rgba(37,99,235,.1);border:1px solid #93C5FD"></div>Hari ini</div>
 </div>
@@ -168,14 +173,14 @@
     <div class="modal-box">
         <div class="modal-header">
             <span class="modal-title">Upload Jadwal Excel</span>
-            <button class="btn-icon" onclick="closeModal('modalUpload')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalUpload')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/jadwal/upload" enctype="multipart/form-data">
             <div class="modal-body">
                 <div style="background:var(--primary-light);border:1px solid #BFDBFE;border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:12.5px;color:var(--primary)">
                     Format kolom: <b>nama, tanggal, oc, piket, off</b><br>
                     Isi kolom OC/Piket/Off dengan <b>Y</b> jika bertugas.<br>
-                    <a href="/jadwal/template" style="color:var(--primary);font-weight:600">⬇ Download template</a>
+                    <a href="/jadwal/template" style="color:var(--primary);font-weight:700">↓ Download template</a>
                 </div>
                 <div class="form-group">
                     <label class="form-label">File Excel (.xlsx)</label>
@@ -194,7 +199,7 @@
     <div class="modal-box">
         <div class="modal-header">
             <span class="modal-title">Input Jadwal Manual</span>
-            <button class="btn-icon" onclick="closeModal('modalTambah')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalTambah')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/jadwal/tambah">
             <div class="modal-body">
@@ -231,8 +236,8 @@
 <div class="modal-overlay" id="modalRequest" onclick="if(event.target===this)closeModal('modalRequest')">
     <div class="modal-box">
         <div class="modal-header">
-            <span class="modal-title">📅 Request Tanggal</span>
-            <button class="btn-icon" onclick="closeModal('modalRequest')">✕</button>
+            <span class="modal-title">{{ icons.i('calendar', 16) }} Request Tanggal</span>
+            <button class="btn-icon" onclick="closeModal('modalRequest')">{{ icons.i('x', 16) }}</button>
         </div>
 
         <!-- FORM TAMBAH: hanya bungkus bagian input, TIDAK bungkus list blackout -->
@@ -281,7 +286,7 @@
                     <form method="POST" action="/jadwal/blackout/hapus/{{ b.id }}" style="display:inline">
                         <input type="hidden" name="tahun" value="{{ tahun }}">
                         <input type="hidden" name="bulan" value="{{ bulan }}">
-                        <button type="submit" class="btn btn-danger-soft btn-xs">✕</button>
+                        <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('x', 11) }}</button>
                     </form>
                 </div>
                 {% endfor %}
@@ -295,8 +300,8 @@
 <div class="modal-overlay" id="modalGenerate" onclick="if(event.target===this)closeModal('modalGenerate')">
     <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
-            <span class="modal-title">⚡ Generate Jadwal</span>
-            <button class="btn-icon" onclick="closeModal('modalGenerate')">✕</button>
+            <span class="modal-title">{{ icons.i('zap', 16) }} Generate Jadwal</span>
+            <button class="btn-icon" onclick="closeModal('modalGenerate')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/jadwal/preview">
             <div class="modal-body">

@@ -1,145 +1,162 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Detail Task{% endblock %}
+{% block page_title %}Detail Task{% endblock %}
+
+{% block extra_style %}
+.task-wrap{max-width:640px;margin:0 auto}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--primary);font-size:13px;font-weight:600;margin-bottom:14px}
+.back-link:hover{text-decoration:underline}
+.task-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.task-head h1{font-size:17px;font-weight:700;letter-spacing:-.2px}
+.task-desc{color:var(--text-muted);font-size:13.5px;margin-top:10px;line-height:1.6}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;font-size:12.5px}
+@media(max-width:480px){.meta-grid{grid-template-columns:1fr}}
+.meta-item{display:flex;align-items:center;gap:7px;color:var(--text-muted)}
+.meta-item .icon{color:var(--text-muted)}
+.meta-item b{color:var(--text);font-weight:600}
+.assignee-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.assignee-chip{background:var(--bg-hover);padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+
+.progress-block{margin-top:18px}
+.progress-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px}
+.progress-track{height:9px;background:var(--bg-hover);border-radius:6px;overflow:hidden}
+.progress-fill{height:100%;border-radius:6px;transition:width .3s}
+.progress-fill.c-done{background:var(--success)}
+.progress-fill.c-prog{background:var(--primary)}
+.progress-fill.c-empty{background:var(--border)}
+
+.progress-form{display:flex;align-items:center;gap:10px;margin-top:14px}
+.progress-form input[type=range]{flex:1}
+.progress-form .pct-label{width:38px;font-size:12.5px;font-weight:700;text-align:right}
+
+.comment-item{border-left:3px solid var(--primary);padding:4px 0 4px 12px;margin-bottom:12px}
+.comment-name{font-size:12.5px;font-weight:700}
+.comment-body{font-size:12.5px;color:var(--text-muted);margin-top:2px;line-height:1.5}
+.comment-time{font-size:10.5px;color:var(--text-muted);margin-top:4px}
+{% endblock %}
+
 {% block content %}
+<div class="task-wrap">
+    <a href="javascript:history.back()" class="back-link">{{ icons.i('arrow-left', 14) }} Kembali</a>
 
-<div class="row justify-content-center">
-<div class="col-md-8">
-    <a href="javascript:history.back()" class="text-primary small">← Kembali</a>
-
-    <div class="card shadow-sm mt-3">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <h5 class="fw-bold">{{ task.judul }}</h5>
-                <span class="badge
-                    {% if task.prioritas == 'high' %}bg-danger
-                    {% elif task.prioritas == 'low' %}bg-secondary
-                    {% else %}bg-warning text-dark{% endif %}">
-                    {{ task.prioritas }}
+    <div class="card p-5">
+        <div class="task-head">
+            <h1>{{ task.judul }}</h1>
+            <div class="flex gap-2" style="flex-shrink:0">
+                <span class="badge badge-{{ task.status|replace('on_progress','progress') }}">
+                    {{ task.status|replace('on_progress','In Progress')|replace('open','Open')|replace('done','Done') }}
                 </span>
+                <span class="badge badge-{{ task.prioritas }}">{{ task.prioritas|title }}</span>
             </div>
-            {% if session.role == 'manager' %}
-            <form method="POST" action="/manager/task/{{ task.id }}/hapus" class="d-inline"
-                onsubmit="return confirm('Hapus task ini?')">
-                <button type="submit" class="btn btn-outline-danger btn-sm">🗑 Hapus Task</button>
-            </form>
-            {% endif %}
+        </div>
 
-            <p class="text-muted small mt-2">{{ task.deskripsi or 'Tidak ada deskripsi.' }}</p>
+        {% if session.role == 'manager' %}
+        <form method="POST" action="/manager/task/{{ task.id }}/hapus" class="mt-3" onsubmit="return confirm('Hapus task ini?')">
+            <button type="submit" class="btn btn-danger-soft btn-sm">{{ icons.i('trash', 14) }} Hapus Task</button>
+        </form>
+        {% endif %}
 
-            <div class="row g-2 small text-muted mt-2">
-                <div class="col-6">📅 Deadline: <b>{{ task.deadline or '-' }}</b></div>
-                <div class="col-6">📌 Status: <b>{{ task.status }}</b></div>
-                <div class="col-12">👤 Assignee:
-                    {% for a in assignees %}<b>{{ a.nama }}</b>{% if not loop.last %}, {% endif %}{% endfor %}
+        <p class="task-desc">{{ task.deskripsi or 'Tidak ada deskripsi.' }}</p>
+
+        <div class="meta-grid">
+            <div class="meta-item">{{ icons.i('calendar', 14) }} Deadline: <b>{{ task.deadline or '-' }}</b></div>
+            <div class="meta-item">{{ icons.i('clock', 14) }} Status: <b>{{ task.status }}</b></div>
+        </div>
+        <div class="meta-item mt-2">
+            {{ icons.i('users', 14) }} Assignee:
+        </div>
+        <div class="assignee-list">
+            {% for a in assignees %}<span class="assignee-chip">{{ a.nama }}</span>{% else %}<span class="text-muted text-sm">Belum ada assignee</span>{% endfor %}
+        </div>
+
+        <div class="progress-block">
+            <div class="progress-top">
+                <span class="text-muted">Progress</span>
+                <span class="font-bold">{{ task.progres }}%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill {% if task.progres==100 %}c-done{% elif task.progres>0 %}c-prog{% else %}c-empty{% endif %}" style="width:{{ task.progres }}%"></div>
+            </div>
+        </div>
+
+        {% if session.role in ('manager', 'kepala_support') %}
+        <button class="btn btn-outline btn-sm mt-4" onclick="openModal('modalEdit')">{{ icons.i('edit', 14) }} Edit Task</button>
+
+        <div class="modal-overlay" id="modalEdit" onclick="if(event.target===this)closeModal('modalEdit')">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span class="modal-title">Edit Task</span>
+                    <button class="btn-icon" onclick="closeModal('modalEdit')">{{ icons.i('x', 16) }}</button>
                 </div>
-            </div>
-
-            <div class="mt-3">
-                <div class="d-flex justify-content-between small mb-1">
-                    <span class="text-muted">Progress</span>
-                    <span class="fw-bold">{{ task.progres }}%</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                    <div class="progress-bar
-                        {% if task.progres == 100 %}bg-success
-                        {% elif task.progres > 0 %}bg-primary
-                        {% else %}bg-secondary{% endif %}"
-                        style="width: {{ task.progres }}%">
-                    </div>
-                </div>
-            </div>
-
-            {% if session.role in ('manager', 'kepala_support') %}
-<button class="btn btn-outline-primary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#modalEdit">
-    ✏️ Edit Task
-</button>
-
-<div class="modal fade" id="modalEdit" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/edit">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Deskripsi</label>
-                        <textarea name="deskripsi" rows="3" class="form-control">{{ task.deskripsi or '' }}</textarea>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col">
-                            <label class="form-label small fw-semibold">Deadline</label>
-                            <input type="date" name="deadline" value="{{ task.deadline or '' }}" class="form-control">
+                <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/edit">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea name="deskripsi" class="form-control">{{ task.deskripsi or '' }}</textarea>
                         </div>
-                        <div class="col">
-                            <label class="form-label small fw-semibold">Prioritas</label>
-                            <select name="prioritas" class="form-select">
-                                <option value="low" {% if task.prioritas == 'low' %}selected{% endif %}>Low</option>
-                                <option value="normal" {% if task.prioritas == 'normal' %}selected{% endif %}>Normal</option>
-                                <option value="high" {% if task.prioritas == 'high' %}selected{% endif %}>High</option>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Deadline</label>
+                                <input type="date" name="deadline" value="{{ task.deadline or '' }}" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Prioritas</label>
+                                <select name="prioritas" class="form-select">
+                                    <option value="low" {% if task.prioritas == 'low' %}selected{% endif %}>Low</option>
+                                    <option value="normal" {% if task.prioritas == 'normal' %}selected{% endif %}>Normal</option>
+                                    <option value="high" {% if task.prioritas == 'high' %}selected{% endif %}>High</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% if users %}
+                        <div class="form-group">
+                            <label class="form-label">Assign ke <span class="text-muted text-xs">(Ctrl+Click multi)</span></label>
+                            <select name="assignees" multiple class="form-select" size="4">
+                                {% for u in users %}
+                                <option value="{{ u.id }}">{{ u.nama }}</option>
+                                {% endfor %}
                             </select>
                         </div>
+                        {% endif %}
                     </div>
-                    {% if users %}
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Assign ke</label>
-                        <select name="assignees" multiple class="form-select" size="4">
-                            {% for u in users %}
-                            <option value="{{ u.id }}">{{ u.nama }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">Ctrl+Click untuk pilih lebih dari 1</div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modalEdit')">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>
-                    {% endif %}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-            {% if session.role != 'manager' %}
-            <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/progres">
-                <input type="range" name="progres" min="0" max="100" step="10"
-                    value="{{ task.progres }}" class="form-range flex-grow-1"
-                    oninput="this.nextElementSibling.textContent = this.value + '%'">
-                <span class="small" style="width:40px">{{ task.progres }}%</span>
-                <button type="submit" class="btn btn-primary btn-sm">Update</button>
-            </form>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Komentar -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-body">
-            <h6 class="fw-bold mb-3">💬 Log Progress</h6>
-
-            {% for c in comments %}
-            <div class="border-start border-primary border-3 ps-3 mb-3">
-                <div class="small fw-semibold">{{ c.nama }}</div>
-                <div class="small text-muted mt-1">{{ c.isi }}</div>
-                <div class="text-muted" style="font-size:11px">{{ c.created_at }}</div>
+                </form>
             </div>
-            {% else %}
-            <p class="text-muted small">Belum ada komentar.</p>
-            {% endfor %}
-
-            <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/komentar">
-                <textarea name="isi" rows="3" class="form-control"
-                    placeholder="Tulis update progress..."></textarea>
-                <button type="submit" class="btn btn-primary btn-sm mt-2">Kirim</button>
-            </form>
         </div>
+        {% endif %}
+
+        {% if session.role != 'manager' %}
+        <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/progres" class="progress-form">
+            <input type="range" name="progres" min="0" max="100" step="10"
+                value="{{ task.progres }}"
+                oninput="this.nextElementSibling.textContent = this.value + '%'">
+            <span class="pct-label">{{ task.progres }}%</span>
+            <button type="submit" class="btn btn-primary btn-sm">Update</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="card p-5 mt-4">
+        <div class="section-title mb-3">{{ icons.i('message', 15) }} Log Progress</div>
+
+        {% for c in comments %}
+        <div class="comment-item">
+            <div class="comment-name">{{ c.nama }}</div>
+            <div class="comment-body">{{ c.isi }}</div>
+            <div class="comment-time">{{ c.created_at }}</div>
+        </div>
+        {% else %}
+        <p class="text-muted text-sm">Belum ada komentar.</p>
+        {% endfor %}
+
+        <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/komentar" class="mt-3">
+            <textarea name="isi" class="form-control" placeholder="Tulis update progress..."></textarea>
+            <button type="submit" class="btn btn-primary btn-sm mt-2">{{ icons.i('send', 13) }} Kirim</button>
+        </form>
     </div>
 </div>
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

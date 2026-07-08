@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Daftar Piket{% endblock %}
 {% block page_title %}Daftar Piket{% endblock %}
 
@@ -6,17 +7,18 @@
 .piket-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .15s}
 .piket-item:last-child{border-bottom:none}
 .piket-item:hover{background:var(--bg-hover)}
-.piket-num{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.piket-num{width:26px;height:26px;border-radius:8px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .piket-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.piket-name{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 {% endblock %}
 
 {% block content %}
-<div class="flex-between mb-4">
+<div class="flex-between mb-4" style="flex-wrap:wrap;gap:12px">
     <div>
-        <div style="font-size:15px;font-weight:700">👷 Daftar Piket</div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.i('shield', 17) }} Daftar Piket</div>
         <div class="text-muted text-sm mt-1">Rolling piket berurutan dari atas ke bawah, lanjut bulan ke bulan</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('modalTambah')">+ Tambah ke Piket</button>
+    <button class="btn btn-primary" onclick="openModal('modalTambah')">{{ icons.i('plus', 14) }} Tambah ke Piket</button>
 </div>
 
 <div class="card" style="overflow:hidden;margin-bottom:20px">
@@ -24,15 +26,13 @@
     <div class="piket-item">
         <div class="piket-num">{{ p.urutan }}</div>
         <div class="piket-avatar">{{ (p.nama_user or 'U')[0].upper() }}</div>
-        <span style="flex:1;font-weight:500">{{ p.nama_user }}</span>
+        <span class="piket-name">{{ p.nama_user }}</span>
         <form method="POST" action="/superadmin/piket/hapus/{{ p.id }}" style="display:inline" onsubmit="return confirm('Hapus dari daftar piket?')">
-            <button type="submit" class="btn btn-danger-soft btn-xs">Hapus</button>
+            <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('trash', 12) }} Hapus</button>
         </form>
     </div>
     {% else %}
-    <div style="text-align:center;padding:40px;color:var(--text-muted)">
-        Belum ada yang masuk daftar piket
-    </div>
+    <div class="empty-state">{{ icons.i('shield', 30) }}<div>Belum ada yang masuk daftar piket</div></div>
     {% endfor %}
 </div>
 
@@ -40,8 +40,8 @@
 <div class="modal-overlay" id="modalTambah" onclick="if(event.target===this)closeModal('modalTambah')">
     <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
-            <span class="modal-title">Tambah ke Daftar Piket</span>
-            <button class="btn-icon" onclick="closeModal('modalTambah')">✕</button>
+            <span class="modal-title">{{ icons.i('shield', 16) }} Tambah ke Daftar Piket</span>
+            <button class="btn-icon" onclick="closeModal('modalTambah')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/superadmin/piket/tambah">
             <div class="modal-body">

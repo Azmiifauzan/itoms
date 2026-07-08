@@ -1,35 +1,41 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Penyimpanan{% endblock %}
 {% block page_title %}Penyimpanan{% endblock %}
 
 {% block extra_style %}
 .disk-bar-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px}
-.disk-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px}
+.disk-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-size:13px;gap:10px;flex-wrap:wrap}
+.disk-bar-top .flex-center{gap:8px}
 .disk-bar-track{height:8px;background:var(--bg-hover);border-radius:4px;overflow:hidden}
 .disk-bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--cyan));border-radius:4px;transition:width .3s}
-.disk-bar-fill.warn{background:linear-gradient(90deg,#F59E0B,#EF4444)}
+.disk-bar-fill.warn{background:linear-gradient(90deg,var(--warning),var(--danger))}
 
 .storage-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
 .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
-.breadcrumb a{color:var(--primary);font-weight:500}
+.breadcrumb a{color:var(--primary);font-weight:600;display:flex;align-items:center;gap:5px}
 .breadcrumb a:hover{text-decoration:underline}
 .breadcrumb-sep{color:var(--text-muted)}
 .storage-actions{display:flex;gap:8px;flex-wrap:wrap}
 
-.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:22px;text-align:center;color:var(--text-muted);font-size:13px;margin-bottom:16px;transition:background .15s,border-color .15s}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;color:var(--text-muted);font-size:13px;margin-bottom:16px;transition:background .15s,border-color .15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .drop-zone.dragover{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
 
-.file-table{width:100%;border-collapse:collapse;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.file-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border)}
-.file-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+.table-scroll{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+.file-table{width:100%;border-collapse:collapse;background:var(--bg-card);min-width:560px}
+.file-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:11px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-weight:700}
+.file-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
 .file-table tr:last-child td{border-bottom:none}
 .file-table tr:hover td{background:var(--bg-hover)}
-.file-name-link{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:500}
-.file-icon{font-size:16px;flex-shrink:0}
+.file-name-link{display:flex;align-items:center;gap:9px;color:var(--text);font-weight:600}
+.file-icon-wrap{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.file-icon-wrap.folder{background:var(--primary-light);color:var(--primary)}
+.file-icon-wrap.file{background:var(--bg-hover);color:var(--text-muted)}
 .row-actions{display:flex;gap:6px;justify-content:flex-end}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13.5px}
+.empty-state .icon{opacity:.35;margin-bottom:8px}
 .meta-cell{font-size:12px;line-height:1.4}
-.meta-name{font-weight:500;color:var(--text)}
+.meta-name{font-weight:600;color:var(--text)}
 .meta-time{color:var(--text-muted);font-size:10.5px}
 .meta-empty{color:var(--text-muted)}
 {% endblock %}
@@ -37,7 +43,7 @@
 {% block content %}
 <div class="disk-bar-wrap">
     <div class="disk-bar-top">
-        <span class="font-semibold">Disk Penyimpanan (data-internal)</span>
+        <span class="font-semibold flex-center gap-2">{{ icons.i('drive', 15) }} Disk Penyimpanan (data-internal)</span>
         <span class="text-muted">{{ disk.used }} / {{ disk.total }} terpakai — sisa <b class="text-primary">{{ disk.free }}</b></span>
     </div>
     <div class="disk-bar-track">
@@ -47,28 +53,29 @@
 
 <div class="storage-toolbar">
     <div class="breadcrumb">
-        <a href="/storage/">🏠 Root</a>
+        <a href="/storage/">{{ icons.i('home', 13) }} Root</a>
         {% for label, crumb_path in breadcrumbs %}
         <span class="breadcrumb-sep">/</span>
         <a href="/storage/?path={{ crumb_path }}">{{ label }}</a>
         {% endfor %}
     </div>
     <div class="storage-actions">
-        <button class="btn btn-outline btn-sm" onclick="openModal('modalMkdir')">📁 Folder Baru</button>
-        <button class="btn btn-outline btn-sm" onclick="document.getElementById('folderInput').click()">🗂 Upload Folder</button>
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()">⬆ Upload File</button>
+        <button class="btn btn-outline btn-sm" onclick="openModal('modalMkdir')">{{ icons.i('folder', 14) }} Folder Baru</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('folderInput').click()">{{ icons.i('upload', 14) }} Upload Folder</button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()">{{ icons.i('upload', 14) }} Upload File</button>
     </div>
 </div>
 
 <!-- Drop zone: tarik file/folder ke sini -->
 <div class="drop-zone" id="dropZone">
-    ⬇ Tarik & lepas file atau folder ke sini untuk upload ke <b>/{{ rel_path or 'root' }}</b>
+    {{ icons.i('download', 15) }} Tarik &amp; lepas file atau folder ke sini untuk upload ke <b>/{{ rel_path or 'root' }}</b>
 </div>
 
 <!-- Input tersembunyi, dipicu tombol toolbar -->
 <input type="file" id="fileInput" multiple style="display:none">
 <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
 
+<div class="table-scroll">
 <table class="file-table">
     <thead>
         <tr>
@@ -85,7 +92,7 @@
         <tr>
             <td colspan="5">
                 <a href="/storage/?path={{ parent }}" class="file-name-link">
-                    <span class="file-icon">↩</span> ..
+                    {{ icons.i('arrow-left', 15) }} ..
                 </a>
             </td>
         </tr>
@@ -95,7 +102,7 @@
         <tr>
             <td>
                 <a href="/storage/?path={{ f.rel_path }}" class="file-name-link">
-                    <span class="file-icon">📁</span> {{ f.name }}
+                    <span class="file-icon-wrap folder">{{ icons.i('folder', 15) }}</span> {{ f.name }}
                 </a>
             </td>
             <td class="text-muted">—</td>
@@ -113,8 +120,8 @@
             </td>
             <td>
                 <div class="row-actions">
-                    <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')">✎</button>
-                    <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', true)">✕</button>
+                    <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')">{{ icons.i('edit', 12) }}</button>
+                    <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', true)">{{ icons.i('trash', 12) }}</button>
                 </div>
             </td>
         </tr>
@@ -124,7 +131,7 @@
         <tr>
             <td>
                 <span class="file-name-link">
-                    <span class="file-icon">📄</span> {{ f.name }}
+                    <span class="file-icon-wrap file">{{ icons.i('file', 15) }}</span> {{ f.name }}
                 </span>
             </td>
             <td class="text-muted">{{ f.size }}</td>
@@ -142,9 +149,9 @@
             </td>
             <td>
                 <div class="row-actions">
-                    <a href="/storage/download?path={{ f.rel_path }}" class="btn btn-outline btn-xs" title="Download">⬇</a>
-                    <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')">✎</button>
-                    <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', false)">✕</button>
+                    <a href="/storage/download?path={{ f.rel_path }}" class="btn btn-outline btn-xs" title="Download">{{ icons.i('download', 12) }}</a>
+                    <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')">{{ icons.i('edit', 12) }}</button>
+                    <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', false)">{{ icons.i('trash', 12) }}</button>
                 </div>
             </td>
         </tr>
@@ -152,18 +159,19 @@
 
         {% if not folders and not files %}
         <tr>
-            <td colspan="5" class="empty-state">Folder ini kosong.</td>
+            <td colspan="5" class="empty-state">{{ icons.i('folder', 30) }}<div>Folder ini kosong.</div></td>
         </tr>
         {% endif %}
     </tbody>
 </table>
+</div>
 
 <!-- Modal Buat Folder -->
 <div class="modal-overlay" id="modalMkdir" onclick="if(event.target===this)closeModal('modalMkdir')">
     <div class="modal-box">
         <div class="modal-header">
-            <span class="modal-title">📁 Folder Baru</span>
-            <button class="btn-icon" onclick="closeModal('modalMkdir')">✕</button>
+            <span class="modal-title">{{ icons.i('folder', 16) }} Folder Baru</span>
+            <button class="btn-icon" onclick="closeModal('modalMkdir')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/storage/mkdir">
             <input type="hidden" name="path" value="{{ rel_path }}">
@@ -185,8 +193,8 @@
 <div class="modal-overlay" id="modalRename" onclick="if(event.target===this)closeModal('modalRename')">
     <div class="modal-box">
         <div class="modal-header">
-            <span class="modal-title">✎ Ganti Nama</span>
-            <button class="btn-icon" onclick="closeModal('modalRename')">✕</button>
+            <span class="modal-title">{{ icons.i('edit', 16) }} Ganti Nama</span>
+            <button class="btn-icon" onclick="closeModal('modalRename')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/storage/rename" id="formRename">
             <input type="hidden" name="path" id="renamePath">
@@ -210,7 +218,7 @@
     <div class="modal-box">
         <div class="modal-header">
             <span class="modal-title">Hapus?</span>
-            <button class="btn-icon" onclick="closeModal('modalDelete')">✕</button>
+            <button class="btn-icon" onclick="closeModal('modalDelete')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/storage/delete" id="formDelete">
             <input type="hidden" name="path" id="deletePath">
@@ -229,7 +237,7 @@
 <!-- Overlay loading saat upload folder/drag-drop besar -->
 <div class="modal-overlay" id="modalUploading">
     <div class="modal-box" style="max-width:320px;text-align:center;padding:24px">
-        <div style="font-size:14px;font-weight:600;margin-bottom:6px">⏳ Mengupload...</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">Mengupload...</div>
         <div class="text-muted text-sm" id="uploadingCount">Menyiapkan file</div>
     </div>
 </div>
