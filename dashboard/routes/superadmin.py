@@ -217,6 +217,27 @@ def whitelist():
         ).fetchall()
     return render_template("superadmin/whitelist.html", user=user, whitelist=wl)
 
+@superadmin_bp.route("/whitelist/tambah", methods=["POST"])
+@login_required
+@superadmin_required
+def tambah_whitelist():
+    from db.local import add_user
+    nama = request.form.get("nama", "").strip()
+    user_id = request.form.get("user_id", "").strip()
+    nama_jadwal = request.form.get("nama_jadwal", "").strip()
+    no_hp = request.form.get("no_hp", "").strip()
+
+    if nama and user_id.isdigit():
+        ok = add_user(int(user_id), nama, added_by=session.get("user_id"))
+        if ok:
+            with get_conn() as conn:
+                conn.execute(
+                    "UPDATE whitelist SET nama_jadwal = ?, no_hp = ? WHERE user_id = ?",
+                    (nama_jadwal or None, no_hp or None, int(user_id))
+                )
+                conn.commit()
+
+    return redirect(url_for("superadmin.whitelist"))
 
 @superadmin_bp.route("/whitelist/edit/<int:user_id>", methods=["POST"])
 @login_required
