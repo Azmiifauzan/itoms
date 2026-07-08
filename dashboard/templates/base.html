@@ -220,7 +220,7 @@
         .accent-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
             background-image:linear-gradient(rgba(37,99,235,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.045) 1px,transparent 1px);
             background-size:46px 46px;
-            mask-image:radial-gradient(ellipse 60% 45% at 50% 0%, black 0%, transparent 50%);
+            mask-image:radial-gradient(ellipse 60% 45% at 50% 0%, black 0%, transparent 75%);
         }
         [data-theme="dark"] .accent-grid{display:none}
 
@@ -316,6 +316,22 @@
     </main>
 </div>
 
+<!-- Modal peringatan sesi akan berakhir (idle timeout) -->
+<div class="modal-overlay" id="modalSessionWarning">
+    <div class="modal-box" style="max-width:360px;text-align:center;padding:8px">
+        <div class="modal-body">
+            <div style="width:44px;height:44px;border-radius:50%;background:var(--warning-bg);color:var(--warning);display:flex;align-items:center;justify-content:center;margin:4px auto 14px">
+                {{ icons.i('clock', 20) }}
+            </div>
+            <div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Sesi kamu akan berakhir</div>
+            <div class="text-muted text-sm">Gak ada aktivitas nih. Sesi otomatis logout dalam <b id="sessionCountdown">60</b> detik.</div>
+        </div>
+        <div class="modal-footer" style="justify-content:center;border-top:none;padding-top:4px">
+            <button class="btn btn-primary" onclick="staySignedIn()">Saya masih di sini</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const html = document.documentElement;
 const saved = localStorage.getItem('theme') || 'light';
@@ -374,6 +390,43 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
 });
+
+// ── Idle session timeout ──
+// Samain SESSION_TIMEOUT_MENIT ini dengan PERMANENT_SESSION_LIFETIME di app.py
+const SESSION_TIMEOUT_MENIT = 30;
+const WARN_SEBELUM_DETIK = 60;
+let warnTimer, logoutTimer, countdownInterval;
+
+function resetIdleTimer() {
+    clearTimeout(warnTimer); clearTimeout(logoutTimer); clearInterval(countdownInterval);
+    closeModal('modalSessionWarning');
+    const warnMs = (SESSION_TIMEOUT_MENIT * 60 - WARN_SEBELUM_DETIK) * 1000;
+    const logoutMs = SESSION_TIMEOUT_MENIT * 60 * 1000;
+    warnTimer = setTimeout(showSessionWarning, warnMs);
+    logoutTimer = setTimeout(() => { window.location.href = '/logout'; }, logoutMs);
+}
+function showSessionWarning() {
+    let sisa = WARN_SEBELUM_DETIK;
+    document.getElementById('sessionCountdown').textContent = sisa;
+    openModal('modalSessionWarning');
+    countdownInterval = setInterval(() => {
+        sisa -= 1;
+        document.getElementById('sessionCountdown').textContent = Math.max(sisa, 0);
+        if (sisa <= 0) clearInterval(countdownInterval);
+    }, 1000);
+}
+function staySignedIn() {
+    // ping server biar cookie session ke-refresh, lalu reset timer client
+    fetch(window.location.pathname, { credentials: 'same-origin' }).catch(() => {});
+    resetIdleTimer();
+}
+['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, () => {
+        // jangan reset kalau modal peringatan lagi kebuka (biar user sadar milih)
+        if (!document.getElementById('modalSessionWarning').classList.contains('open')) resetIdleTimer();
+    }, { passive: true });
+});
+resetIdleTimer();
 </script>
 {% block extra_script %}{% endblock %}
 </body>

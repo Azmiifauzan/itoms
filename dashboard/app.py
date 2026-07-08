@@ -6,9 +6,10 @@ Jalankan: python dashboard/app.py
 
 import sys
 import os
+from datetime import timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask
+from flask import Flask, session
 from dashboard.auth import auth_bp
 from dashboard.routes.manager import manager_bp
 from dashboard.routes.support import support_bp
@@ -21,6 +22,18 @@ app = Flask(__name__, template_folder="templates")
 app.jinja_env.globals.update(enumerate=enumerate)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "ganti-ini-dengan-random-string")
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024 * 1024
+
+
+SESSION_TIMEOUT_MENIT = 30
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=SESSION_TIMEOUT_MENIT)
+app.config["SESSION_REFRESH_EACH_REQUEST"] = True
+
+
+@app.before_request
+def _extend_session_lifetime():
+    if session:
+        session.permanent = True
+
 
 # Register blueprints
 app.register_blueprint(auth_bp)
