@@ -62,6 +62,28 @@
             --warning-bg:   #2A2110;
             --danger-bg:    #2A1416;
         }
+        [data-theme="sunset"] {
+            --bg:           #FBEEE3;
+            --page-bg:      radial-gradient(circle at 6% -8%, rgba(251,146,60,.32), transparent 42%),
+                            radial-gradient(circle at 100% 4%, rgba(244,63,94,.22), transparent 40%),
+                            radial-gradient(circle at 25% 112%, rgba(217,70,35,.18), transparent 38%),
+                            radial-gradient(circle at 95% 100%, rgba(251,191,36,.16), transparent 32%),
+                            #FBEEE3;
+            --bg-card:      #FFFBF8;
+            --bg-sidebar:   #2E1712;
+            --bg-hover:     #FCE3CE;
+            --border:       #F3D3B8;
+            --text:         #3A2317;
+            --text-muted:   #9C7259;
+            --primary:      #EA580C;
+            --primary-dark: #C2410C;
+            --primary-light:#FFE7D1;
+            --accent:       #F43F5E;
+            --success-bg:   #EAF7EC;
+            --warning-bg:   #FEF3DA;
+            --danger-bg:    #FDE6E4;
+        }
+        [data-theme="sunset"] .accent-grid,[data-theme="dark"] .accent-grid{display:none}
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         html{-webkit-text-size-adjust:100%}
         body{font-family:'Inter',system-ui,sans-serif;background:var(--page-bg);background-attachment:fixed;color:var(--text);font-size:14px;line-height:1.55;transition:background .2s,color .2s;-webkit-font-smoothing:antialiased}
@@ -222,7 +244,6 @@
             background-size:46px 46px;
             mask-image:radial-gradient(ellipse 65% 50% at 50% 0%, black 0%, transparent 80%);
         }
-        [data-theme="dark"] .accent-grid{display:none}
 
         .shell{position:relative;z-index:1}
         @media(prefers-reduced-motion:reduce){.stars-bg .star,.stars-bg .shoot{animation:none;opacity:.5}}
@@ -334,14 +355,54 @@
 
 <script>
 const html = document.documentElement;
-const saved = localStorage.getItem('theme') || 'light';
-html.setAttribute('data-theme', saved);
-function paintThemeIcon(t){
-    document.getElementById('themeBtn').innerHTML = t === 'dark'
-        ? '{{ icons.i("sun", 16) | replace("\n","") }}'
-        : '{{ icons.i("moon", 16) | replace("\n","") }}';
+
+// ── Tema otomatis ikut jam WIB (GMT+7), tapi tetap bisa di-override manual ──
+// Mode tersimpan di localStorage:
+//   'auto'   -> ikut jam (default kalau belum pernah diklik)
+//   'light' | 'sunset' | 'dark' -> dipilih manual, gak berubah otomatis lagi
+const THEME_ICONS = { light: 'sun', sunset: 'sunset', dark: 'moon' };
+const THEME_LABELS = { light: 'Siang', sunset: 'Senja', dark: 'Malam' };
+
+function getWIBHour() {
+    const now = new Date();
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const wib = new Date(utcMs + 7 * 3600000);
+    return wib.getHours() + wib.getMinutes() / 60;
 }
-paintThemeIcon(saved);
+function themeForNow() {
+    const h = getWIBHour();
+    if (h >= 5 && h < 15) return 'light';   // pagi - siang
+    if (h >= 15 && h < 18) return 'sunset'; // sore
+    return 'dark';                          // malam
+}
+function paintThemeIcon(effective, mode) {
+    const iconMap = { light: 'sun', sunset: 'sunset', dark: 'moon' };
+    const svgs = {
+        light: '{{ icons.i("sun", 16) | replace("\n","") }}',
+        sunset: '{{ icons.i("sunset", 16) | replace("\n","") }}',
+        dark: '{{ icons.i("moon", 16) | replace("\n","") }}'
+    };
+    document.getElementById('themeBtn').innerHTML = svgs[effective];
+    document.getElementById('themeBtn').title = mode === 'auto'
+        ? 'Mode: Otomatis (' + THEME_LABELS[effective] + ') — klik untuk pilih manual'
+        : 'Mode: ' + THEME_LABELS[effective] + ' (manual) — klik untuk ganti';
+}
+function applyTheme(mode) {
+    const effective = mode === 'auto' ? themeForNow() : mode;
+    html.setAttribute('data-theme', effective);
+    paintThemeIcon(effective, mode);
+}
+let themeMode = localStorage.getItem('themeMode') || 'auto';
+applyTheme(themeMode);
+// kalau lagi auto & tab dibiarin lama, recek tiap 5 menit biar ganti pas waktunya
+setInterval(() => { if (themeMode === 'auto') applyTheme('auto'); }, 5 * 60 * 1000);
+
+function toggleTheme() {
+    const order = ['auto', 'light', 'sunset', 'dark'];
+    themeMode = order[(order.indexOf(themeMode) + 1) % order.length];
+    localStorage.setItem('themeMode', themeMode);
+    applyTheme(themeMode);
+}
 
 // Starfield — dibuat sekali, cuma kelihatan waktu dark mode (lihat CSS .stars-bg)
 (function(){
@@ -376,12 +437,6 @@ paintThemeIcon(saved);
     }
 })();
 
-function toggleTheme() {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    paintThemeIcon(next);
-}
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('open');

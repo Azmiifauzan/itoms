@@ -20,7 +20,7 @@ import os
 import shutil
 import tempfile
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
     send_file, abort, session
@@ -31,10 +31,24 @@ from db.local import get_conn
 
 storage_bp = Blueprint("storage", __name__, url_prefix="/storage")
 
+# Zona waktu WIB tetap (UTC+7) — gak bergantung setting timezone container,
+# jadi tetap benar walau container jalan di UTC (default Docker).
+WIB = timezone(timedelta(hours=7))
+
+def _now_str() -> str:
+    return datetime.now(WIB).strftime("%Y-%m-%d %H:%M")
+
 # Path folder di dalam container. Harus di-mount di docker-compose.yml:
 #   volumes:
 #     - /mnt/data-internal:/app/data-internal
 BASE_PATH = os.environ.get("STORAGE_BASE_PATH", "/app/data-internal")
+
+# Ekstensi yang dianggap gambar — boleh ditampilin sebagai thumbnail & preview inline
+IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+
+
+def _is_image(name: str) -> bool:
+    return os.path.splitext(name)[1].lower() in IMAGE_EXT
 
 
 # ──────────────────────────────────────────
@@ -105,7 +119,7 @@ def _ensure_meta_table(conn):
 
 
 def _mark_uploaded(rel_path: str, nama: str):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = _now_str()
     with get_conn() as conn:
         _ensure_meta_table(conn)
         conn.execute("""
@@ -128,7 +142,7 @@ def _rename_meta(old_rel: str, new_rel: str, is_folder: bool, nama: str):
         else:
             rows = conn.execute("SELECT * FROM file_meta WHERE rel_path = ?", (old_rel,)).fetchall()
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        now = _now_str()
         for r in rows:
             new_path = new_rel + r["rel_path"][len(old_rel):]
             conn.execute("DELETE FROM file_meta WHERE rel_path = ?", (r["rel_path"],))
@@ -192,7 +206,7 @@ def _set_folder_perm(rel_path: str, mode: str, owner: str, password: str = None)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(rel_path) DO UPDATE SET mode=excluded.mode, owner=excluded.owner,
                 password_hash=excluded.password_hash
-        """, (rel_path, mode, owner, pw_hash, datetime.now().strftime("%Y-%m-%d %H:%M")))
+        """, (rel_path, mode, owner, pw_hash, _now_str()))
         conn.commit()
 
 
@@ -324,7 +338,12 @@ def index():
                 folder_rel_list.append(entry_rel)
             else:
                 stat = os.stat(full)
-                files.append({"name": name, "rel_path": entry_rel, "size": _fmt_size(stat.st_size)})
+                files.append({
+                    "name": name,
+                    "rel_path": entry_rel,
+                    "size": _fmt_size(stat.st_size),
+                    "is_image": _is_image(name),
+                })
         except OSError:
             continue
 
@@ -482,6 +501,20 @@ def delete():
             _delete_meta(target_rel, is_folder=False)
 
     return redirect(url_for("storage.index", path=rel_path))
+
+
+@storage_bp.route("/raw")
+@login_required
+def raw():
+    """Serve gambar langsung ke browser (buat thumbnail & preview), bukan attachment."""
+    rel_path = request.args.get("path", "").strip("/")
+    parent = rel_path.rsplit("/", 1)[0] if "/" in rel_path else ""
+    _enforce_access(parent)
+
+    abs_path = _safe_join(rel_path)
+    if not os.path.isfile(abs_path) or not _is_image(abs_path):
+        abort(404)
+    return send_file(abs_path)  # as_attachment=False default -> tampil inline di browser
 
 
 @storage_bp.route("/download")
