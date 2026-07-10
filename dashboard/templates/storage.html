@@ -32,6 +32,8 @@
 .file-icon.ic-folder{color:var(--primary)}
 .file-icon.ic-file{color:var(--text-muted)}
 .thumb{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);cursor:pointer;background:var(--bg)}
+.thumb-wrap{position:relative;width:32px;height:32px;flex-shrink:0}
+.thumb-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.25);border-radius:6px;pointer-events:none}
 .file-name-link.clickable{cursor:pointer}
 .row-actions{display:flex;gap:6px;justify-content:flex-end}
 .row-actions .btn{padding:5px 7px}
@@ -108,6 +110,8 @@
 <svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 {%- elif name == 'chevron-down' -%}
 <svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+{%- elif name == 'play' -%}
+<svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="currentColor"><path d="M8 5v14l11-7Z"/></svg>
 {%- endif -%}
 {% endmacro %}
 
@@ -214,8 +218,16 @@
         <tr>
             <td>
                 {% if f.is_image %}
-                <span class="file-name-link clickable" onclick="openLightbox('/storage/raw?path={{ f.rel_path }}', '{{ f.name }}', '/storage/download?path={{ f.rel_path }}')">
+                <span class="file-name-link clickable" onclick="openLightbox('image', '/storage/raw?path={{ f.rel_path }}', '{{ f.name }}', '/storage/download?path={{ f.rel_path }}')">
                     <img class="thumb" src="/storage/raw?path={{ f.rel_path }}" alt="{{ f.name }}" loading="lazy">
+                    {{ f.name }}
+                </span>
+                {% elif f.is_video %}
+                <span class="file-name-link clickable" onclick="openLightbox('video', '/storage/raw?path={{ f.rel_path }}', '{{ f.name }}', '/storage/download?path={{ f.rel_path }}')">
+                    <span class="thumb-wrap">
+                        <span class="thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted)">{{ icon('file', 16) }}</span>
+                        <span class="thumb-play">{{ icon('play', 14) }}</span>
+                    </span>
                     {{ f.name }}
                 </span>
                 {% else %}
@@ -355,10 +367,11 @@
     </div>
 </div>
 
-<!-- Lightbox preview gambar -->
+<!-- Lightbox preview gambar/video -->
 <div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
     <button class="lightbox-close" onclick="closeLightbox()">{{ icon('x', 18) }}</button>
-    <img id="lightboxImg" src="" alt="">
+    <img id="lightboxImg" src="" alt="" style="display:none">
+    <video id="lightboxVideo" controls style="display:none;max-width:100%;max-height:85vh;border-radius:8px"></video>
     <div class="lightbox-caption">
         <span id="lightboxName"></span>
         <a href="#" id="lightboxDownload" target="_blank">{{ icon('download', 14) }} Download</a>
@@ -380,16 +393,33 @@ function closeUploadMenu() {
 }
 document.addEventListener('click', () => closeUploadMenu());
 
-// ── Lightbox preview gambar ──
-function openLightbox(url, name, downloadUrl) {
-    document.getElementById('lightboxImg').src = url;
+// ── Lightbox preview gambar/video ──
+function openLightbox(type, url, name, downloadUrl) {
+    const img = document.getElementById('lightboxImg');
+    const vid = document.getElementById('lightboxVideo');
+    if (type === 'video') {
+        img.style.display = 'none';
+        img.src = '';
+        vid.style.display = 'block';
+        vid.src = url;
+        vid.play();
+    } else {
+        vid.pause();
+        vid.style.display = 'none';
+        vid.src = '';
+        img.style.display = 'block';
+        img.src = url;
+    }
     document.getElementById('lightboxName').textContent = name;
     document.getElementById('lightboxDownload').href = downloadUrl;
     document.getElementById('lightbox').classList.add('open');
 }
 function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('open');
+    const vid = document.getElementById('lightboxVideo');
+    vid.pause();
+    vid.src = '';
     document.getElementById('lightboxImg').src = '';
+    document.getElementById('lightbox').classList.remove('open');
 }
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeLightbox();

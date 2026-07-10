@@ -7,3 +7,5 @@ gunicorn==21.2.0
 openpyxl==3.1.2
 APScheduler==3.10.4
 requests==2.31.0
+Pillow
+pillow-heif

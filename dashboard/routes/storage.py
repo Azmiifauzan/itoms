@@ -17,6 +17,7 @@ Privasi folder disimpan di tabel folder_perm.
 """
 
 import os
+import io
 import shutil
 import tempfile
 import zipfile
@@ -30,6 +31,14 @@ from dashboard.auth import login_required, get_current_user
 from db.local import get_conn
 
 storage_bp = Blueprint("storage", __name__, url_prefix="/storage")
+
+# Daftarin HEIC opener sekali aja pas module di-load, biar Pillow bisa buka .heic/.heif
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+    HEIC_SUPPORTED = True
+except ImportError:
+    HEIC_SUPPORTED = False
 
 # Zona waktu WIB tetap (UTC+7) — gak bergantung setting timezone container,
 # jadi tetap benar walau container jalan di UTC (default Docker).
@@ -45,10 +54,34 @@ BASE_PATH = os.environ.get("STORAGE_BASE_PATH", "/app/data-internal")
 
 # Ekstensi yang dianggap gambar — boleh ditampilin sebagai thumbnail & preview inline
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+# Ekstensi HEIC/HEIF (foto iPhone) — browser gak bisa baca langsung, perlu dikonversi dulu
+HEIC_EXT = {".heic", ".heif"}
+# Ekstensi yang dianggap video — bisa diputer langsung di browser (streaming)
+VIDEO_EXT = {".mp4", ".webm", ".ogg", ".ogv", ".mov", ".m4v"}
 
 
 def _is_image(name: str) -> bool:
-    return os.path.splitext(name)[1].lower() in IMAGE_EXT
+    ext = os.path.splitext(name)[1].lower()
+    return ext in IMAGE_EXT or (ext in HEIC_EXT and HEIC_SUPPORTED)
+
+
+def _is_heic(name: str) -> bool:
+    return os.path.splitext(name)[1].lower() in HEIC_EXT
+
+
+def _is_video(name: str) -> bool:
+    return os.path.splitext(name)[1].lower() in VIDEO_EXT
+
+
+def _heic_to_jpeg_bytes(abs_path: str) -> io.BytesIO:
+    """Konversi file HEIC/HEIF jadi JPEG in-memory, buat ditampilin browser."""
+    from PIL import Image
+    img = Image.open(abs_path)
+    img = img.convert("RGB")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    buf.seek(0)
+    return buf
 
 
 # ──────────────────────────────────────────
@@ -343,6 +376,7 @@ def index():
                     "rel_path": entry_rel,
                     "size": _fmt_size(stat.st_size),
                     "is_image": _is_image(name),
+                    "is_video": _is_video(name),
                 })
         except OSError:
             continue
@@ -506,15 +540,27 @@ def delete():
 @storage_bp.route("/raw")
 @login_required
 def raw():
-    """Serve gambar langsung ke browser (buat thumbnail & preview), bukan attachment."""
+    """Serve gambar/HEIC/video langsung ke browser (buat thumbnail & preview), bukan attachment."""
     rel_path = request.args.get("path", "").strip("/")
     parent = rel_path.rsplit("/", 1)[0] if "/" in rel_path else ""
     _enforce_access(parent)
 
     abs_path = _safe_join(rel_path)
-    if not os.path.isfile(abs_path) or not _is_image(abs_path):
+    if not os.path.isfile(abs_path):
         abort(404)
-    return send_file(abs_path)  # as_attachment=False default -> tampil inline di browser
+
+    name = os.path.basename(abs_path)
+
+    if _is_heic(name):
+        if not HEIC_SUPPORTED:
+            abort(415, "Server belum bisa preview HEIC, install pillow-heif dulu")
+        buf = _heic_to_jpeg_bytes(abs_path)
+        return send_file(buf, mimetype="image/jpeg")
+
+    if _is_image(name) or _is_video(name):
+        return send_file(abs_path)  # as_attachment=False -> tampil inline; video dapet dukungan Range request otomatis
+
+    abort(404)
 
 
 @storage_bp.route("/download")
