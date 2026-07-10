@@ -35,6 +35,22 @@
 .thumb-wrap{position:relative;width:32px;height:32px;flex-shrink:0}
 .thumb-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.25);border-radius:6px;pointer-events:none}
 .file-name-link.clickable{cursor:pointer}
+.row-check{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
+.file-table tr.selected td{background:var(--primary-light)}
+.select-col{width:34px}
+
+.bulk-bar{position:sticky;top:0;z-index:40;display:none;align-items:center;justify-content:space-between;gap:12px;background:var(--primary);color:#fff;border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:12px;font-size:13px}
+.bulk-bar.show{display:flex}
+.bulk-bar-actions{display:flex;gap:8px}
+.bulk-bar .btn{background:rgba(255,255,255,.15);color:#fff;border-color:transparent}
+.bulk-bar .btn:hover{background:rgba(255,255,255,.28)}
+
+.ctx-menu{display:none;position:fixed;z-index:400;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);min-width:170px;overflow:hidden;padding:4px}
+.ctx-menu.open{display:block}
+.ctx-item{display:flex;align-items:center;gap:9px;padding:8px 12px;font-size:13px;color:var(--text);cursor:pointer;border-radius:6px}
+.ctx-item:hover{background:var(--bg-hover)}
+.ctx-item.danger{color:var(--danger)}
+.ctx-sep{height:1px;background:var(--border);margin:4px 2px}
 .row-actions{display:flex;gap:6px;justify-content:flex-end}
 .row-actions .btn{padding:5px 7px}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13.5px;display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -52,11 +68,21 @@
 .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;align-items:center;justify-content:center;padding:30px}
 .lightbox.open{display:flex}
 .lightbox img{max-width:100%;max-height:85vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.lightbox-close{position:absolute;top:20px;right:24px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lightbox-close{position:absolute;top:20px;right:24px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
 .lightbox-close:hover{background:rgba(255,255,255,.22)}
-.lightbox-caption{position:absolute;bottom:24px;left:0;right:0;text-align:center;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;gap:10px}
+.lightbox-caption{position:absolute;bottom:24px;left:0;right:0;text-align:center;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;gap:14px}
 .lightbox-caption a{color:#fff;opacity:.85}
 .lightbox-caption a:hover{opacity:1}
+.lightbox-counter{opacity:.6;font-size:12px}
+.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.lightbox-nav:hover{background:rgba(255,255,255,.25)}
+.lightbox-prev{left:16px}
+.lightbox-next{right:16px}
+@media(max-width:640px){
+    .lightbox-nav{width:38px;height:38px}
+    .lightbox-prev{left:6px}
+    .lightbox-next{right:6px}
+}
 
 .privacy-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;margin-left:6px;flex-shrink:0}
 .privacy-badge.private{background:#FEF2F2;color:var(--danger)}
@@ -112,6 +138,10 @@
 <svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
 {%- elif name == 'play' -%}
 <svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="currentColor"><path d="M8 5v14l11-7Z"/></svg>
+{%- elif name == 'chevron-left' -%}
+<svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+{%- elif name == 'chevron-right' -%}
+<svg viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
 {%- endif -%}
 {% endmacro %}
 
@@ -157,10 +187,20 @@
 <input type="file" id="fileInput" multiple style="display:none">
 <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
 
-<table class="file-table">
+<div class="bulk-bar" id="bulkBar">
+    <span id="bulkCount">0 dipilih</span>
+    <div class="bulk-bar-actions">
+        <button type="button" class="btn btn-sm" onclick="bulkDownload()">{{ icon('download-zip', 14) }} Download</button>
+        <button type="button" class="btn btn-sm" onclick="bulkDeleteConfirm()">{{ icon('trash', 14) }} Hapus</button>
+        <button type="button" class="btn btn-sm" onclick="clearSelection()">{{ icon('x', 13) }} Batal</button>
+    </div>
+</div>
+
+<table class="file-table" id="fileTable">
     <thead>
         <tr>
-            <th style="width:32%">Nama</th>
+            <th class="select-col"><input type="checkbox" class="row-check" id="checkAll" onchange="toggleSelectAll(this)"></th>
+            <th style="width:30%">Nama</th>
             <th>Ukuran</th>
             <th>Diupload oleh</th>
             <th>Diedit oleh</th>
@@ -171,7 +211,7 @@
         {% if rel_path %}
         {% set parent = rel_path.rsplit('/', 1)[0] if '/' in rel_path else '' %}
         <tr>
-            <td colspan="5">
+            <td colspan="6">
                 <a href="/storage/?path={{ parent }}" class="file-name-link">
                     <span class="file-icon">{{ icon('back') }}</span> ..
                 </a>
@@ -180,7 +220,8 @@
         {% endif %}
 
         {% for f in folders %}
-        <tr>
+        <tr class="selectable-row" data-name="{{ f.name }}" data-type="folder" data-download="/storage/download-folder?path={{ f.rel_path }}">
+            <td><input type="checkbox" class="row-check item-check" onclick="event.stopPropagation()" onchange="onCheckChange(this)"></td>
             <td>
                 <a href="/storage/?path={{ f.rel_path }}" class="file-name-link">
                     <span class="file-icon ic-folder">{{ icon('folder') }}</span> {{ f.name }}
@@ -214,22 +255,26 @@
         </tr>
         {% endfor %}
 
+        {% set ns = namespace(idx=0) %}
         {% for f in files %}
-        <tr>
+        <tr class="selectable-row" data-name="{{ f.name }}" data-type="file" data-download="/storage/download?path={{ f.rel_path }}">
+            <td><input type="checkbox" class="row-check item-check" onclick="event.stopPropagation()" onchange="onCheckChange(this)"></td>
             <td>
                 {% if f.is_image %}
-                <span class="file-name-link clickable" onclick="openLightbox('image', '/storage/raw?path={{ f.rel_path }}', '{{ f.name }}', '/storage/download?path={{ f.rel_path }}')">
+                <span class="file-name-link clickable" onclick="openLightbox({{ ns.idx }})">
                     <img class="thumb" src="/storage/raw?path={{ f.rel_path }}&thumb=1" alt="{{ f.name }}" loading="lazy">
                     {{ f.name }}
                 </span>
+                {% set ns.idx = ns.idx + 1 %}
                 {% elif f.is_video %}
-                <span class="file-name-link clickable" onclick="openLightbox('video', '/storage/raw?path={{ f.rel_path }}', '{{ f.name }}', '/storage/download?path={{ f.rel_path }}')">
+                <span class="file-name-link clickable" onclick="openLightbox({{ ns.idx }})">
                     <span class="thumb-wrap">
                         <span class="thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted)">{{ icon('file', 16) }}</span>
                         <span class="thumb-play">{{ icon('play', 14) }}</span>
                     </span>
                     {{ f.name }}
                 </span>
+                {% set ns.idx = ns.idx + 1 %}
                 {% else %}
                 <span class="file-name-link">
                     <span class="file-icon ic-file">{{ icon('file') }}</span> {{ f.name }}
@@ -261,13 +306,24 @@
 
         {% if not folders and not files %}
         <tr>
-            <td colspan="5">
+            <td colspan="6">
                 <div class="empty-state">{{ icon('inbox', 28) }}<span>Folder ini kosong.</span></div>
             </td>
         </tr>
         {% endif %}
     </tbody>
 </table>
+
+<!-- Context menu klik kanan -->
+<div class="ctx-menu" id="ctxMenu"></div>
+
+<!-- Form tersembunyi buat kirim bulk action (diisi JS sebelum submit) -->
+<form method="POST" action="/storage/delete-selected" id="formBulkDelete" style="display:none">
+    <input type="hidden" name="path" value="{{ rel_path }}">
+</form>
+<form method="POST" action="/storage/download-selected" id="formBulkDownload" style="display:none">
+    <input type="hidden" name="path" value="{{ rel_path }}">
+</form>
 
 <!-- Modal Buat Folder -->
 <div class="modal-overlay" id="modalMkdir" onclick="if(event.target===this)closeModal('modalMkdir')">
@@ -370,10 +426,13 @@
 <!-- Lightbox preview gambar/video -->
 <div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
     <button class="lightbox-close" onclick="closeLightbox()">{{ icon('x', 18) }}</button>
+    <button class="lightbox-nav lightbox-prev" id="lightboxPrev" onclick="lightboxPrev()">{{ icon('chevron-left', 22) }}</button>
+    <button class="lightbox-nav lightbox-next" id="lightboxNext" onclick="lightboxNext()">{{ icon('chevron-right', 22) }}</button>
     <img id="lightboxImg" src="" alt="" style="display:none">
     <video id="lightboxVideo" controls style="display:none;max-width:100%;max-height:85vh;border-radius:8px"></video>
     <div class="lightbox-caption">
         <span id="lightboxName"></span>
+        <span class="lightbox-counter" id="lightboxCounter"></span>
         <a href="#" id="lightboxDownload" target="_blank">{{ icon('download', 14) }} Download</a>
     </div>
 </div>
@@ -382,6 +441,189 @@
 {% block extra_script %}
 <script>
 const CURRENT_REL_PATH = "{{ rel_path }}";
+
+// ──────────────────────────────────────────
+// Multi-select (checkbox, Ctrl-klik, Shift-klik)
+// ──────────────────────────────────────────
+let lastClickedIndex = null;
+const allRows = () => Array.from(document.querySelectorAll('#fileTable tbody tr.selectable-row'));
+
+function getSelectedRows() {
+    return allRows().filter(r => r.classList.contains('selected'));
+}
+
+function setRowSelected(row, selected) {
+    row.classList.toggle('selected', selected);
+    const cb = row.querySelector('.item-check');
+    if (cb) cb.checked = selected;
+}
+
+function onCheckChange(checkbox) {
+    const row = checkbox.closest('tr');
+    setRowSelected(row, checkbox.checked);
+    lastClickedIndex = allRows().indexOf(row);
+    updateBulkBar();
+}
+
+function toggleSelectAll(checkbox) {
+    allRows().forEach(row => setRowSelected(row, checkbox.checked));
+    updateBulkBar();
+}
+
+function updateBulkBar() {
+    const n = getSelectedRows().length;
+    const bar = document.getElementById('bulkBar');
+    document.getElementById('bulkCount').textContent = n + ' dipilih';
+    bar.classList.toggle('show', n > 0);
+    const total = allRows().length;
+    document.getElementById('checkAll').checked = n > 0 && n === total;
+}
+
+function clearSelection() {
+    allRows().forEach(row => setRowSelected(row, false));
+    lastClickedIndex = null;
+    updateBulkBar();
+}
+
+// Ctrl-klik / Shift-klik langsung di baris (di luar checkbox/tombol) buat power-user
+allRows().forEach((row, idx) => {
+    row.addEventListener('click', function (e) {
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            setRowSelected(row, !row.classList.contains('selected'));
+            lastClickedIndex = idx;
+            updateBulkBar();
+        } else if (e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (lastClickedIndex === null) lastClickedIndex = idx;
+            const [from, to] = [lastClickedIndex, idx].sort((a, b) => a - b);
+            allRows().forEach((r, i) => setRowSelected(r, i >= from && i <= to));
+            updateBulkBar();
+        }
+    }, true); // capture phase -> jalan sebelum link/onclick di dalam baris
+});
+
+// ──────────────────────────────────────────
+// Bulk actions (Download / Hapus terpilih)
+// ──────────────────────────────────────────
+function bulkDownload() {
+    const rows = getSelectedRows();
+    if (!rows.length) return;
+    const form = document.getElementById('formBulkDownload');
+    form.querySelectorAll('input[name="names"]').forEach(el => el.remove());
+    rows.forEach(row => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'names';
+        input.value = row.dataset.name;
+        form.appendChild(input);
+    });
+    form.submit();
+}
+
+function bulkDeleteConfirm() {
+    const rows = getSelectedRows();
+    if (!rows.length) return;
+    document.getElementById('deleteMessage').textContent =
+        `Yakin mau hapus ${rows.length} item yang dipilih? Ini gak bisa dibatalin.`;
+    document.getElementById('formDelete').onsubmit = function (e) {
+        e.preventDefault();
+        const form = document.getElementById('formBulkDelete');
+        form.querySelectorAll('input[name="names"]').forEach(el => el.remove());
+        rows.forEach(row => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'names';
+            input.value = row.dataset.name;
+            form.appendChild(input);
+        });
+        form.submit();
+    };
+    openModal('modalDelete');
+}
+
+// ──────────────────────────────────────────
+// Context menu klik kanan
+// ──────────────────────────────────────────
+const ctxMenu = document.getElementById('ctxMenu');
+
+allRows().forEach(row => {
+    row.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        const selectedRows = getSelectedRows();
+        if (selectedRows.length > 1 && row.classList.contains('selected')) {
+            showContextMenu(e, buildBulkMenuItems(selectedRows));
+        } else {
+            clearSelection();
+            setRowSelected(row, true);
+            updateBulkBar();
+            showContextMenu(e, buildSingleMenuItems(row));
+        }
+    });
+});
+
+function buildSingleMenuItems(row) {
+    const name = row.dataset.name;
+    const type = row.dataset.type;
+    const downloadUrl = row.dataset.download;
+    const items = [];
+    if (type === 'folder') {
+        items.push({ label: 'Buka', icon: 'folder', action: () => row.querySelector('a').click() });
+    }
+    items.push({ label: type === 'folder' ? 'Download (.zip)' : 'Download', icon: 'download', action: () => window.location.href = downloadUrl });
+    items.push({ label: 'Ganti Nama', icon: 'edit', action: () => openRename(CURRENT_REL_PATH, name) });
+    items.push({ sep: true });
+    items.push({ label: 'Hapus', icon: 'trash', danger: true, action: () => openDelete(CURRENT_REL_PATH, name, type === 'folder') });
+    return items;
+}
+
+function buildBulkMenuItems(rows) {
+    return [
+        { label: `Download ${rows.length} item (.zip)`, icon: 'download-zip', action: bulkDownload },
+        { sep: true },
+        { label: `Hapus ${rows.length} item`, icon: 'trash', danger: true, action: bulkDeleteConfirm },
+    ];
+}
+
+function showContextMenu(e, items) {
+    ctxMenu.innerHTML = '';
+    items.forEach(item => {
+        if (item.sep) {
+            const sep = document.createElement('div');
+            sep.className = 'ctx-sep';
+            ctxMenu.appendChild(sep);
+            return;
+        }
+        const el = document.createElement('div');
+        el.className = 'ctx-item' + (item.danger ? ' danger' : '');
+        el.innerHTML = ICONS[item.icon] ? ICONS[item.icon] : '';
+        el.appendChild(document.createTextNode(item.label));
+        el.onclick = () => { closeContextMenu(); item.action(); };
+        ctxMenu.appendChild(el);
+    });
+    const x = Math.min(e.clientX, window.innerWidth - 190);
+    const y = Math.min(e.clientY, window.innerHeight - (items.length * 36 + 20));
+    ctxMenu.style.left = x + 'px';
+    ctxMenu.style.top = y + 'px';
+    ctxMenu.classList.add('open');
+}
+function closeContextMenu() {
+    ctxMenu.classList.remove('open');
+}
+document.addEventListener('click', closeContextMenu);
+document.addEventListener('scroll', closeContextMenu, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeContextMenu(); });
+
+// Ikon kecil buat dirender di context menu (duplikat ringan dari macro SVG)
+const ICONS = {
+    folder: '{{ icon("folder", 15) | e }}',
+    download: '{{ icon("download", 15) | e }}',
+    'download-zip': '{{ icon("download-zip", 15) | e }}',
+    edit: '{{ icon("edit", 15) | e }}',
+    trash: '{{ icon("trash", 15) | e }}',
+};
 
 // ── Dropdown menu Upload (File / Folder) ──
 function toggleUploadMenu(e) {
@@ -393,27 +635,55 @@ function closeUploadMenu() {
 }
 document.addEventListener('click', () => closeUploadMenu());
 
-// ── Lightbox preview gambar/video ──
-function openLightbox(type, url, name, downloadUrl) {
+// ── Lightbox preview gambar/video (gallery, bisa geser) ──
+const MEDIA_ITEMS = [
+{% for f in files %}{% if f.is_image or f.is_video %}{ type: '{{ "video" if f.is_video else "image" }}', url: '/storage/raw?path={{ f.rel_path }}', name: {{ f.name|tojson }}, download: '/storage/download?path={{ f.rel_path }}' },
+{% endif %}{% endfor %}
+];
+let currentMediaIndex = 0;
+
+function openLightbox(index) {
+    currentMediaIndex = index;
+    renderLightbox();
+    document.getElementById('lightbox').classList.add('open');
+}
+
+function renderLightbox() {
+    const item = MEDIA_ITEMS[currentMediaIndex];
+    if (!item) return;
     const img = document.getElementById('lightboxImg');
     const vid = document.getElementById('lightboxVideo');
-    if (type === 'video') {
+    if (item.type === 'video') {
         img.style.display = 'none';
         img.src = '';
         vid.style.display = 'block';
-        vid.src = url;
+        vid.src = item.url;
         vid.play();
     } else {
         vid.pause();
         vid.style.display = 'none';
         vid.src = '';
         img.style.display = 'block';
-        img.src = url;
+        img.src = item.url;
     }
-    document.getElementById('lightboxName').textContent = name;
-    document.getElementById('lightboxDownload').href = downloadUrl;
-    document.getElementById('lightbox').classList.add('open');
+    document.getElementById('lightboxName').textContent = item.name;
+    document.getElementById('lightboxDownload').href = item.download;
+    document.getElementById('lightboxCounter').textContent =
+        MEDIA_ITEMS.length > 1 ? `${currentMediaIndex + 1} / ${MEDIA_ITEMS.length}` : '';
+    const showNav = MEDIA_ITEMS.length > 1;
+    document.getElementById('lightboxPrev').style.display = showNav ? 'flex' : 'none';
+    document.getElementById('lightboxNext').style.display = showNav ? 'flex' : 'none';
 }
+
+function lightboxPrev() {
+    currentMediaIndex = (currentMediaIndex - 1 + MEDIA_ITEMS.length) % MEDIA_ITEMS.length;
+    renderLightbox();
+}
+function lightboxNext() {
+    currentMediaIndex = (currentMediaIndex + 1) % MEDIA_ITEMS.length;
+    renderLightbox();
+}
+
 function closeLightbox() {
     const vid = document.getElementById('lightboxVideo');
     vid.pause();
@@ -421,9 +691,28 @@ function closeLightbox() {
     document.getElementById('lightboxImg').src = '';
     document.getElementById('lightbox').classList.remove('open');
 }
+
 document.addEventListener('keydown', e => {
+    if (!document.getElementById('lightbox').classList.contains('open')) return;
     if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lightboxPrev();
+    if (e.key === 'ArrowRight') lightboxNext();
 });
+
+// Swipe geser kiri/kanan buat HP
+(function () {
+    const lb = document.getElementById('lightbox');
+    let touchStartX = null;
+    lb.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+    lb.addEventListener('touchend', e => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 50) {
+            if (dx > 0) lightboxPrev(); else lightboxNext();
+        }
+        touchStartX = null;
+    });
+})();
 
 function onPrivasiChange(input) {
     document.querySelectorAll('.privacy-option').forEach(el => el.classList.remove('checked'));
@@ -446,6 +735,7 @@ function openRename(path, oldName) {
     openModal('modalRename');
 }
 function openDelete(path, targetName, isFolder) {
+    document.getElementById('formDelete').onsubmit = null; // reset kalau sebelumnya dipakai buat bulk delete
     document.getElementById('deletePath').value = path;
     document.getElementById('deleteTargetName').value = targetName;
     document.getElementById('deleteMessage').textContent = isFolder

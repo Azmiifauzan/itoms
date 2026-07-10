@@ -572,6 +572,73 @@ def delete():
     return redirect(url_for("storage.index", path=rel_path))
 
 
+@storage_bp.route("/delete-selected", methods=["POST"])
+@login_required
+def delete_selected():
+    """Hapus banyak file/folder sekaligus — dipakai dari multi-select (checkbox/ctrl-klik)."""
+    rel_path = request.form.get("path", "").strip("/")
+    _enforce_access(rel_path)
+
+    abs_dir = _safe_join(rel_path)
+    for raw_name in request.form.getlist("names"):
+        target_name = os.path.basename(raw_name.strip())
+        if not target_name:
+            continue
+        target_full = os.path.join(abs_dir, target_name)
+        target_rel = f"{rel_path}/{target_name}".strip("/") if rel_path else target_name
+        if os.path.isdir(target_full):
+            shutil.rmtree(target_full, ignore_errors=True)
+            _delete_meta(target_rel, is_folder=True)
+            _delete_folder_perm(target_rel)
+        elif os.path.isfile(target_full):
+            os.remove(target_full)
+            _delete_meta(target_rel, is_folder=False)
+
+    return redirect(url_for("storage.index", path=rel_path))
+
+
+@storage_bp.route("/download-selected", methods=["POST"])
+@login_required
+def download_selected():
+    """Download beberapa file/folder terpilih sekaligus, digabung jadi 1 .zip."""
+    rel_path = request.form.get("path", "").strip("/")
+    _enforce_access(rel_path)
+
+    abs_dir = _safe_join(rel_path)
+    names = [os.path.basename(n.strip()) for n in request.form.getlist("names") if n.strip()]
+    if not names:
+        abort(400)
+
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".zip")
+    os.close(tmp_fd)
+    try:
+        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for name in names:
+                full = os.path.join(abs_dir, name)
+                if os.path.isdir(full):
+                    for root, dirs, files in os.walk(full):
+                        for fn in files:
+                            fp = os.path.join(root, fn)
+                            arcname = os.path.join(name, os.path.relpath(fp, full))
+                            zf.write(fp, arcname)
+                elif os.path.isfile(full):
+                    zf.write(full, name)
+    except Exception:
+        os.remove(tmp_path)
+        raise
+
+    response = send_file(tmp_path, as_attachment=True, download_name="selected_files.zip", mimetype="application/zip")
+
+    @response.call_on_close
+    def _cleanup_tmp():
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+
+    return response
+
+
 @storage_bp.route("/raw")
 @login_required
 def raw():

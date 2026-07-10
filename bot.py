@@ -40,7 +40,14 @@ def main():
     # Inisialisasi SQLite (buat tabel kalau belum ada)
     init_db()
 
-    app = ApplicationBuilder().token(Config.TELEGRAM_BOT_TOKEN).build()
+    app = ApplicationBuilder()\
+        .token(Config.TELEGRAM_BOT_TOKEN)\
+        .connect_timeout(30)\
+        .read_timeout(30)\
+        .write_timeout(30)\
+        .pool_timeout(30)\
+        .build()
+        
 
     app.add_handler(CommandHandler("start",       cmd_start))
     app.add_handler(CommandHandler("myid",        cmd_myid))
