@@ -21,6 +21,7 @@ import io
 import shutil
 import tempfile
 import zipfile
+import hashlib
 from datetime import datetime, timezone, timedelta
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
@@ -73,15 +74,49 @@ def _is_video(name: str) -> bool:
     return os.path.splitext(name)[1].lower() in VIDEO_EXT
 
 
-def _heic_to_jpeg_bytes(abs_path: str) -> io.BytesIO:
-    """Konversi file HEIC/HEIF jadi JPEG in-memory, buat ditampilin browser."""
+# ──────────────────────────────────────────
+# Cache thumbnail (server-side, bukan browser cache)
+# Sekali dibikin, dipakai ulang buat semua orang — auto rebuild kalau file
+# aslinya berubah (key cache-nya mengandung mtime file asli).
+# ──────────────────────────────────────────
+
+CACHE_DIR = os.environ.get("STORAGE_CACHE_DIR", "/app/.storage_cache")
+
+
+def _cache_path(rel_path: str, mtime: float, suffix: str) -> str:
+    key = hashlib.md5(f"{rel_path}|{mtime}|{suffix}".encode()).hexdigest()
+    return os.path.join(CACHE_DIR, f"{key}.jpg")
+
+
+def _get_or_make_thumbnail(abs_path: str, rel_path: str, size_px: int = 240) -> str:
+    """Thumbnail kecil (buat list) — resize + di-cache ke disk."""
+    stat = os.stat(abs_path)
+    cache_path = _cache_path(rel_path, stat.st_mtime, f"thumb{size_px}")
+    if os.path.exists(cache_path):
+        return cache_path
     from PIL import Image
+    os.makedirs(CACHE_DIR, exist_ok=True)
     img = Image.open(abs_path)
     img = img.convert("RGB")
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
-    buf.seek(0)
-    return buf
+    img.thumbnail((size_px, size_px))
+    img.save(cache_path, format="JPEG", quality=80)
+    return cache_path
+
+
+def _get_or_make_full_preview(abs_path: str, rel_path: str) -> str:
+    """
+    Versi full (buat lightbox) — cuma dipakai buat HEIC (karena harus dikonversi).
+    Gambar biasa (jpg/png) gak lewat sini, langsung diserve file aslinya.
+    """
+    stat = os.stat(abs_path)
+    cache_path = _cache_path(rel_path, stat.st_mtime, "full")
+    if os.path.exists(cache_path):
+        return cache_path
+    from PIL import Image
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    img = Image.open(abs_path).convert("RGB")
+    img.save(cache_path, format="JPEG", quality=90)
+    return cache_path
 
 
 # ──────────────────────────────────────────
@@ -540,7 +575,11 @@ def delete():
 @storage_bp.route("/raw")
 @login_required
 def raw():
-    """Serve gambar/HEIC/video langsung ke browser (buat thumbnail & preview), bukan attachment."""
+    """
+    Serve gambar/HEIC/video ke browser.
+    ?thumb=1 -> versi kecil buat list (di-cache, cepat)
+    tanpa itu -> versi full buat lightbox (asli utuh, HEIC tetap dikonversi tapi di-cache juga)
+    """
     rel_path = request.args.get("path", "").strip("/")
     parent = rel_path.rsplit("/", 1)[0] if "/" in rel_path else ""
     _enforce_access(parent)
@@ -550,15 +589,25 @@ def raw():
         abort(404)
 
     name = os.path.basename(abs_path)
+    want_thumb = request.args.get("thumb") == "1"
 
     if _is_heic(name):
         if not HEIC_SUPPORTED:
             abort(415, "Server belum bisa preview HEIC, install pillow-heif dulu")
-        buf = _heic_to_jpeg_bytes(abs_path)
-        return send_file(buf, mimetype="image/jpeg")
+        if want_thumb:
+            cache_path = _get_or_make_thumbnail(abs_path, rel_path)
+        else:
+            cache_path = _get_or_make_full_preview(abs_path, rel_path)
+        return send_file(cache_path, mimetype="image/jpeg")
 
-    if _is_image(name) or _is_video(name):
-        return send_file(abs_path)  # as_attachment=False -> tampil inline; video dapet dukungan Range request otomatis
+    if os.path.splitext(name)[1].lower() in IMAGE_EXT:
+        if want_thumb:
+            cache_path = _get_or_make_thumbnail(abs_path, rel_path)
+            return send_file(cache_path, mimetype="image/jpeg")
+        return send_file(abs_path)  # full asli, browser otomatis cache via ETag/Last-Modified
+
+    if _is_video(name):
+        return send_file(abs_path)  # streaming asli, dukung Range request buat seek
 
     abort(404)
 

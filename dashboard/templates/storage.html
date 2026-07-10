@@ -219,7 +219,7 @@
             <td>
                 {% if f.is_image %}
                 <span class="file-name-link clickable" onclick="openLightbox('image', '/storage/raw?path={{ f.rel_path }}', '{{ f.name }}', '/storage/download?path={{ f.rel_path }}')">
-                    <img class="thumb" src="/storage/raw?path={{ f.rel_path }}" alt="{{ f.name }}" loading="lazy">
+                    <img class="thumb" src="/storage/raw?path={{ f.rel_path }}&thumb=1" alt="{{ f.name }}" loading="lazy">
                     {{ f.name }}
                 </span>
                 {% elif f.is_video %}
