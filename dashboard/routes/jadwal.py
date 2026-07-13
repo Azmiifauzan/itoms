@@ -422,27 +422,33 @@ def preview():
     bulan_nama = ["Januari","Februari","Maret","April","Mei","Juni",
                   "Juli","Agustus","September","Oktober","November","Desember"][bulan-1]
 
+    hasil = _generate_jadwal(tahun, bulan)
+
     with get_conn() as conn:
         whitelist = conn.execute(
             "SELECT user_id, nama, no_hp FROM whitelist ORDER BY nama"
         ).fetchall()
-        jadwal_list = conn.execute(
-            "SELECT nama, tanggal, tipe FROM jadwal WHERE tanggal LIKE ? ORDER BY tanggal",
-            (f"{tahun}-{bulan:02d}%",)
-        ).fetchall()
 
     ringkasan = {}
     for w in whitelist:
-        ringkasan[w["nama"]] = {"no_hp": w["no_hp"] or "-", "oc": [], "piket": []}
+        ringkasan[w["nama"]] = {
+            "no_hp": w["no_hp"] or "-",
+            "oc": [], "oc_merah": [],
+            "piket": [], "piket_merah": []
+        }
 
-    for j in jadwal_list:
-        day = int(j["tanggal"].split("-")[2])
-        nama = j["nama"]
-        if nama in ringkasan:
-            if j["tipe"] == "oc":
-                ringkasan[nama]["oc"].append(str(day))
-            elif j["tipe"] == "piket":
-                ringkasan[nama]["piket"].append(str(day))
+    for tgl, data in sorted(hasil.items()):
+        day = int(tgl.split("-")[2])
+        if data["oc"] and data["oc"] in ringkasan:
+            if data["oc_merah"]:
+                ringkasan[data["oc"]]["oc_merah"].append(str(day))
+            else:
+                ringkasan[data["oc"]]["oc"].append(str(day))
+        if data["piket"] and data["piket"] in ringkasan:
+            if data["piket_merah"]:
+                ringkasan[data["piket"]]["piket_merah"].append(str(day))
+            else:
+                ringkasan[data["piket"]]["piket"].append(str(day))
 
     user = get_current_user()
     return render_template("jadwal_preview.html",
@@ -499,23 +505,27 @@ def download_excel():
     bulan_nama = ["Januari","Februari","Maret","April","Mei","Juni",
                   "Juli","Agustus","September","Oktober","November","Desember"][bulan-1]
 
-    hasil = _generate_jadwal(tahun, bulan)
-
     with get_conn() as conn:
         whitelist = conn.execute(
             "SELECT user_id, nama, no_hp FROM whitelist ORDER BY nama"
+        ).fetchall()
+        jadwal_list = conn.execute(
+            "SELECT nama, tanggal, tipe FROM jadwal WHERE tanggal LIKE ? ORDER BY tanggal",
+            (f"{tahun}-{bulan:02d}%",)
         ).fetchall()
 
     ringkasan = {}
     for w in whitelist:
         ringkasan[w["nama"]] = {"no_hp": w["no_hp"] or "-", "oc": [], "piket": []}
 
-    for tgl, data in sorted(hasil.items()):
-        day = int(tgl.split("-")[2])
-        if data["oc"] and data["oc"] in ringkasan:
-            ringkasan[data["oc"]]["oc"].append(str(day))
-        if data["piket"] and data["piket"] in ringkasan:
-            ringkasan[data["piket"]]["piket"].append(str(day))
+    for j in jadwal_list:
+        day = int(j["tanggal"].split("-")[2])
+        nama = j["nama"]
+        if nama in ringkasan:
+            if j["tipe"] == "oc":
+                ringkasan[nama]["oc"].append(str(day))
+            elif j["tipe"] == "piket":
+                ringkasan[nama]["piket"].append(str(day))
 
     wb = openpyxl.Workbook()
     ws = wb.active
