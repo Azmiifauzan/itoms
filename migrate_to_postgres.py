@@ -22,7 +22,7 @@ from werkzeug.security import generate_password_hash
 SQLITE_PATH = os.environ.get("OLD_SQLITE_PATH", "local.db")
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://itoms:itmos123@127.0.0.1:5432/itoms_db"
+    "postgresql://itoms:itoms123@127.0.0.1:5432/itoms_db"
 )
 
 import psycopg2
