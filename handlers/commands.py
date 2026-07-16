@@ -1,8 +1,3 @@
-"""
-handlers/commands.py
-Semua command handler untuk bot Telegram.
-"""
-
 import subprocess
 import logging
 from functools import wraps
@@ -20,9 +15,6 @@ from db.local import (is_allowed, add_user, remove_user, list_users,
 logger = logging.getLogger(__name__)
 
 
-# ──────────────────────────────────────────
-# Decorator: cek whitelist dari SQLite
-# ──────────────────────────────────────────
 def restricted(func):    
     @wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -44,7 +36,7 @@ def admin_only(func):
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         if user_id not in Config.ADMIN_USER_IDS:
-            await update.message.reply_text("⛔ Command ini hanya untuk admin.")
+            await update.message.reply_text("Mau ngapain bwang.")
             return
         return await func(update, ctx)
     return wrapper
@@ -58,19 +50,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     is_admin = user_id in Config.ADMIN_USER_IDS
 
     text = (
-        "👋 <b>Bot POS</b>\n\n"
-        "<b>Command tersedia:</b>\n"
-        "• /daftar &lt;noabsen&gt; — Buat user POS dari data HRIS\n"
-        "• /status — Cek koneksi semua database\n"
-        "• /myid — Lihat Telegram User ID kamu\n"
+        "<b>Hallo Brok</b>"
     )
-    if is_admin:
-        text += (
-            "\n<b>Command admin:</b>\n"
-            "• /adduser &lt;user_id&gt; &lt;nama&gt; — Tambah user ke whitelist\n"
-            "• /removeuser &lt;user_id&gt; — Hapus user dari whitelist\n"
-            "• /listuser — Lihat semua user di whitelist\n"
-        )
     await update.message.reply_text(text, parse_mode="HTML")
 
 
@@ -80,7 +61,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_myid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_text(
-        f"ℹ️ Info akun kamu:\n"
+        f"Info akun lu nih brok:\n"
         f"• <b>User ID:</b> <code>{user.id}</code>\n"
         f"• <b>Username:</b> @{user.username or '-'}\n"
         f"• <b>Nama:</b> {user.full_name}",
@@ -95,7 +76,7 @@ async def cmd_myid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_daftar(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not ctx.args:
         await update.message.reply_text(
-            "⚠️ Format: <code>/daftar &lt;noabsen&gt;</code>\nContoh: <code>/daftar 12345</code>",
+            "Format: <code>/daftar &lt;noabsen&gt;</code>\nContoh: <code>/daftar 12345</code>",
             parse_mode="HTML",
         )
         return
@@ -126,7 +107,7 @@ async def cmd_daftar(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         already, reason = is_user_exists(no_absen)
         if already:
             await msg.edit_text(
-            f"⚠️ Tidak bisa daftarkan <b>{full_name}</b>:\n{reason}",
+            f"Udah di daftarin <b>{full_name}</b>:\n{reason}",
             parse_mode="HTML",
             )
             return
