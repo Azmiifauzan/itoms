@@ -5,7 +5,7 @@ from db.local import get_conn
 
 auth_bp = Blueprint("auth", __name__)
  
- def login_required(func):
+def login_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if "user_id" not in session:
