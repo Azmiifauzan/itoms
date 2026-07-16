@@ -1,23 +1,3 @@
-"""
-db/local.py
-Koneksi PostgreSQL buat ITOMS.
-
-Nama file/module ini tetap "local" (bukan "postgres") biar semua file lain yang
-udah nulis `from db.local import get_conn` gak perlu diubah satu-satu — cukup
-ganti isi module ini aja.
-
-Info koneksi diambil dari config.py (Config.LOCAL_DB_*), konsisten sama HRIS/WEBSERV
-yang udah ada di config.py — bukan bikin cara baru sendiri.
-
-PENTING — beda sama versi SQLite lama:
-- Placeholder tetap boleh pakai "?" di query (otomatis di-translate ke "%s").
-- "INSERT OR IGNORE" SQLite TIDAK otomatis diterjemahkan — itu harus di-edit manual
-  per file jadi "INSERT ... ON CONFLICT (...) DO NOTHING" (sintaks Postgres).
-- conn.execute(...) tetap ada (dibungkus biar mirip sqlite3.Connection), return-nya
-  punya .fetchall() / .fetchone() kayak biasa. Row hasil query tetap bisa diakses
-  pakai row["nama_kolom"] (pakai RealDictCursor).
-"""
-
 import psycopg2
 import psycopg2.extras
 from config import Config
