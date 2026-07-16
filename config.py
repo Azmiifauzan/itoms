@@ -27,6 +27,13 @@ class Config:
             if gid.strip().lstrip("-").isdigit()
 ]
 
+    # Local PostgreSQL
+    LOCAL_DB_HOST: str     = os.getenv("LOCAL_DB_HOST", "localhost")
+    LOCAL_DB_PORT: int     = int(os.getenv("LOCAL_DB_PORT", 5432))
+    LOCAL_DB_NAME: str     = os.getenv("LOCAL_DB_NAME", "itoms_db")
+    LOCAL_DB_USER: str     = os.getenv("LOCAL_DB_USER", "itoms")
+    LOCAL_DB_PASSWORD: str = os.getenv("LOCAL_DB_PASSWORD", "")
+    
     # HRIS
     HRIS_HOST: str     = os.getenv("HRIS_HOST", "localhost")
     HRIS_PORT: int     = int(os.getenv("HRIS_PORT", 5432))

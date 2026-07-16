@@ -269,9 +269,8 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% set base_path = 'support' if session.role == 'kepala_support' else ('superadmin' if session.role == 'superadmin' else session.role) %}
             <div class="nav-section">Menu Utama</div>
-            <a href="/{{ base_path }}/dashboard" class="nav-item {% if 'dashboard' in request.path %}active{% endif %}">
+            <a href="/dashboard/" class="nav-item {% if request.path.startswith('/dashboard') %}active{% endif %}">
                 {{ icons.i('dashboard') }} Dashboard
             </a>
             <a href="/jadwal/" class="nav-item {% if 'jadwal' in request.path %}active{% endif %}">
@@ -280,12 +279,9 @@
             <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
                 {{ icons.i('folder') }} File Kita Bersama
             </a>
-            {% if session.role == 'superadmin' %}
+            {% if session.is_superadmin %}
             <div class="nav-divider"></div>
             <div class="nav-section">Superadmin</div>
-            <a href="/superadmin/telegram" class="nav-item {% if 'telegram' in request.path %}active{% endif %}">
-                {{ icons.i('send') }} Telegram ID
-            </a>
             <a href="/superadmin/libur" class="nav-item {% if 'libur' in request.path %}active{% endif %}">
                 {{ icons.i('calendar-check') }} Hari Libur
             </a>
@@ -293,18 +289,11 @@
                 {{ icons.i('shield') }} Daftar Piket
             </a>
             <a href="/superadmin/whitelist" class="nav-item {% if 'whitelist' in request.path %}active{% endif %}">
-                {{ icons.i('list') }} Whitelist Bot
-            </a>
-            {% endif %}
-            {% if session.role == 'manager' %}
-            <div class="nav-divider"></div>
-            <div class="nav-section">Administrasi</div>
-            <a href="/manager/users" class="nav-item {% if 'users' in request.path %}active{% endif %}">
-                {{ icons.i('users') }} Kelola User
+                {{ icons.i('list') }} Whitelist &amp; User
             </a>
             {% endif %}
             <div class="nav-divider"></div>
-            <a href="/{{ base_path }}/profile" class="nav-item {% if 'profile' in request.path %}active{% endif %}">
+            <a href="/dashboard/profile" class="nav-item {% if 'profile' in request.path %}active{% endif %}">
                 {{ icons.i('settings') }} Pengaturan
             </a>
         </nav>
@@ -318,7 +307,7 @@
                 <div class="user-avatar">{{ (session.nama or 'U')[0].upper() }}</div>
                 <div style="flex:1;min-width:0">
                     <div class="user-name">{{ session.nama }}</div>
-                    <div class="user-role">{{ (session.role or '').replace('_',' ').title() }}</div>
+                    {% if session.is_superadmin %}<div class="user-role">Superadmin</div>{% endif %}
                 </div>
             </div>
         </div>

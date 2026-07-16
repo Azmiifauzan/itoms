@@ -1,27 +1,39 @@
 """
 dashboard/routes/superadmin.py
-Route khusus superadmin — kelola tanggal merah, daftar piket, multiple Telegram ID.
+Route khusus superadmin — kelola hari libur, daftar piket, dan whitelist user
+(termasuk permissions & login dashboard, karena sekarang 1 tabel buat semuanya).
 """
 
+from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, session
+from werkzeug.security import generate_password_hash
+from psycopg2.extras import Json
 from dashboard.auth import login_required, get_current_user
-from db.local import get_conn, get_telegram_ids, add_telegram_id, remove_telegram_id
+from db.local import get_conn
 
 superadmin_bp = Blueprint("superadmin", __name__, url_prefix="/superadmin")
 
+# Daftar permission yang tersedia di sistem. Tambahin di sini kalau ada fitur baru
+# yang butuh permission baru (misal nanti "approve_retur", "kelola_artikel", dst).
+AVAILABLE_PERMISSIONS = [
+    ("assign_task", "Assign Task"),
+    ("ranking", "Lihat Ranking"),
+    ("generate_jadwal", "Generate Jadwal"),
+    ("download_jadwal", "Download Jadwal"),
+]
+
 
 def superadmin_required(func):
-    from functools import wraps
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if session.get("role") != "superadmin":
-            return redirect(url_for("auth.index"))
+        if not session.get("is_superadmin"):
+            return redirect(url_for("dashboard.index"))
         return func(*args, **kwargs)
     return wrapper
 
 
 # ──────────────────────────────────────────
-# Dashboard superadmin
+# Ringkasan admin
 # ──────────────────────────────────────────
 @superadmin_bp.route("/dashboard")
 @login_required
@@ -29,75 +41,13 @@ def superadmin_required(func):
 def dashboard():
     user = get_current_user()
     with get_conn() as conn:
-        whitelist = conn.execute(
-            "SELECT * FROM whitelist ORDER BY nama"
-        ).fetchall()
-        total_libur = conn.execute(
-            "SELECT COUNT(*) FROM hari_libur"
-        ).fetchone()[0]
-        total_piket = conn.execute(
-            "SELECT COUNT(*) FROM daftar_piket"
-        ).fetchone()[0]
+        whitelist = conn.execute("SELECT * FROM whitelist ORDER BY nama").fetchall()
+        total_libur = conn.execute("SELECT COUNT(*) as c FROM hari_libur").fetchone()["c"]
+        total_piket = conn.execute("SELECT COUNT(*) as c FROM daftar_piket").fetchone()["c"]
     return render_template("superadmin/dashboard.html",
-        user=user,
-        whitelist=whitelist,
-        total_libur=total_libur,
-        total_piket=total_piket,
+        user=user, whitelist=whitelist,
+        total_libur=total_libur, total_piket=total_piket,
     )
-
-
-# ──────────────────────────────────────────
-# Kelola Multiple Telegram ID
-# ──────────────────────────────────────────
-@superadmin_bp.route("/telegram")
-@login_required
-@superadmin_required
-def telegram():
-    user = get_current_user()
-    with get_conn() as conn:
-        whitelist = conn.execute(
-            "SELECT * FROM whitelist ORDER BY nama"
-        ).fetchall()
-    whitelist_data = []
-    for w in whitelist:
-        tg_ids = get_telegram_ids(w["user_id"])  # ← pakai user_id
-        whitelist_data.append({
-            "user": dict(w),
-            "telegram_ids": tg_ids
-        })
-    return render_template("superadmin/telegram.html",
-        user=user,
-        whitelist_data=whitelist_data,
-    )
-
-
-@superadmin_bp.route("/telegram/tambah", methods=["POST"])
-@login_required
-@superadmin_required
-def tambah_telegram():
-    whitelist_id = request.form.get("whitelist_id", "").strip()
-    telegram_user_id = request.form.get("telegram_user_id", "").strip()
-    label = request.form.get("label", "").strip()
-    
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"[DEBUG] tambah_telegram: whitelist_id={whitelist_id}, telegram_user_id={telegram_user_id}, label={label}")
-
-    if whitelist_id.lstrip("-").isdigit() and telegram_user_id.isdigit():
-        result = add_telegram_id(int(whitelist_id), int(telegram_user_id), label or None)
-        logger.info(f"[DEBUG] add_telegram_id result: {result}")
-    else:
-        logger.info(f"[DEBUG] validasi gagal: whitelist_id={whitelist_id}, telegram_user_id={telegram_user_id}")
-
-    return redirect(url_for("superadmin.telegram"))
-
-
-@superadmin_bp.route("/telegram/hapus/<int:tid>", methods=["POST"])
-@login_required
-@superadmin_required
-def hapus_telegram(tid):
-    remove_telegram_id(tid)
-    return redirect(url_for("superadmin.telegram"))
 
 
 # ──────────────────────────────────────────
@@ -111,13 +61,11 @@ def libur():
     tahun = int(request.args.get("tahun", __import__("datetime").date.today().year))
     with get_conn() as conn:
         libur_list = conn.execute(
-            "SELECT * FROM hari_libur WHERE tanggal LIKE ? ORDER BY tanggal",
-            (f"{tahun}%",)
+            "SELECT * FROM hari_libur WHERE EXTRACT(YEAR FROM tanggal) = ? ORDER BY tanggal",
+            (tahun,)
         ).fetchall()
     return render_template("superadmin/libur.html",
-        user=user,
-        libur_list=libur_list,
-        tahun=tahun,
+        user=user, libur_list=libur_list, tahun=tahun,
     )
 
 
@@ -136,7 +84,7 @@ def tambah_libur():
                 )
                 conn.commit()
             except Exception:
-                pass
+                pass  # tanggal duplikat
     return redirect(url_for("superadmin.libur", tahun=tanggal[:4] if tanggal else ""))
 
 
@@ -166,12 +114,10 @@ def piket():
             ORDER BY dp.urutan
         """).fetchall()
         whitelist = conn.execute(
-            "SELECT rowid as id, user_id, nama FROM whitelist ORDER BY nama"
+            "SELECT user_id, nama FROM whitelist ORDER BY nama"
         ).fetchall()
     return render_template("superadmin/piket.html",
-        user=user,
-        daftar=daftar,
-        whitelist=whitelist,
+        user=user, daftar=daftar, whitelist=whitelist,
     )
 
 
@@ -184,8 +130,8 @@ def tambah_piket():
     if whitelist_id:
         with get_conn() as conn:
             max_urutan = conn.execute(
-                "SELECT COALESCE(MAX(urutan), 0) FROM daftar_piket"
-            ).fetchone()[0]
+                "SELECT COALESCE(MAX(urutan), 0) as m FROM daftar_piket"
+            ).fetchone()["m"]
             try:
                 conn.execute(
                     "INSERT INTO daftar_piket (whitelist_id, urutan) VALUES (?, ?)",
@@ -193,7 +139,7 @@ def tambah_piket():
                 )
                 conn.commit()
             except Exception:
-                pass
+                pass  # udah ada di daftar piket
     return redirect(url_for("superadmin.piket"))
 
 
@@ -206,53 +152,93 @@ def hapus_piket(pid):
         conn.commit()
     return redirect(url_for("superadmin.piket"))
 
+
+# ──────────────────────────────────────────
+# Kelola Whitelist (user: telegram + login dashboard + permissions)
+# ──────────────────────────────────────────
 @superadmin_bp.route("/whitelist")
 @login_required
 @superadmin_required
 def whitelist():
     user = get_current_user()
     with get_conn() as conn:
-        wl = conn.execute(
-            "SELECT * FROM whitelist ORDER BY nama"
-        ).fetchall()
-    return render_template("superadmin/whitelist.html", user=user, whitelist=wl)
+        wl = conn.execute("SELECT * FROM whitelist ORDER BY nama").fetchall()
+    return render_template("superadmin/whitelist.html",
+        user=user, whitelist=wl, available_permissions=AVAILABLE_PERMISSIONS,
+    )
+
 
 @superadmin_bp.route("/whitelist/tambah", methods=["POST"])
 @login_required
 @superadmin_required
 def tambah_whitelist():
-    from db.local import add_user
-    nama = request.form.get("nama", "").strip()
     user_id = request.form.get("user_id", "").strip()
-    nama_jadwal = request.form.get("nama_jadwal", "").strip()
+    nama = request.form.get("nama", "").strip()
     no_hp = request.form.get("no_hp", "").strip()
+    telegram_id_2 = request.form.get("telegram_id_2", "").strip()
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "").strip()
+    is_superadmin = request.form.get("is_superadmin") == "on"
+    permissions = request.form.getlist("permissions")
 
-    if nama and user_id.isdigit():
-        ok = add_user(int(user_id), nama, added_by=session.get("user_id"))
-        if ok:
-            with get_conn() as conn:
-                conn.execute(
-                    "UPDATE whitelist SET nama_jadwal = ?, no_hp = ? WHERE user_id = ?",
-                    (nama_jadwal or None, no_hp or None, int(user_id))
-                )
-                conn.commit()
+    if not (user_id.isdigit() and nama and username and password):
+        return redirect(url_for("superadmin.whitelist"))
+
+    password_hash = generate_password_hash(password)
+    tg2 = int(telegram_id_2) if telegram_id_2.isdigit() else None
+
+    with get_conn() as conn:
+        try:
+            conn.execute("""
+                INSERT INTO whitelist
+                    (user_id, nama, no_hp, telegram_id_2, username, password_hash,
+                     is_superadmin, permissions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (int(user_id), nama, no_hp or None, tg2, username, password_hash,
+                  is_superadmin, Json(permissions)))
+            conn.commit()
+        except Exception:
+            pass  # user_id atau username udah dipakai
 
     return redirect(url_for("superadmin.whitelist"))
+
 
 @superadmin_bp.route("/whitelist/edit/<int:user_id>", methods=["POST"])
 @login_required
 @superadmin_required
 def edit_whitelist(user_id):
     nama = request.form.get("nama", "").strip()
-    nama_jadwal = request.form.get("nama_jadwal", "").strip()
     no_hp = request.form.get("no_hp", "").strip()
-    if nama:
-        with get_conn() as conn:
-            conn.execute(
-                "UPDATE whitelist SET nama = ?, nama_jadwal = ?, no_hp = ? WHERE user_id = ?",
-                (nama, nama_jadwal or None, no_hp or None, user_id)
-            )
-            conn.commit()
+    telegram_id_2 = request.form.get("telegram_id_2", "").strip()
+    username = request.form.get("username", "").strip()
+    password_baru = request.form.get("password_baru", "").strip()
+    is_superadmin = request.form.get("is_superadmin") == "on"
+    permissions = request.form.getlist("permissions")
+
+    if not nama:
+        return redirect(url_for("superadmin.whitelist"))
+
+    tg2 = int(telegram_id_2) if telegram_id_2.isdigit() else None
+
+    with get_conn() as conn:
+        if password_baru:
+            conn.execute("""
+                UPDATE whitelist SET
+                    nama = ?, no_hp = ?, telegram_id_2 = ?, username = ?,
+                    password_hash = ?, is_superadmin = ?, permissions = ?
+                WHERE user_id = ?
+            """, (nama, no_hp or None, tg2, username, generate_password_hash(password_baru),
+                  is_superadmin, Json(permissions), user_id))
+        else:
+            conn.execute("""
+                UPDATE whitelist SET
+                    nama = ?, no_hp = ?, telegram_id_2 = ?, username = ?,
+                    is_superadmin = ?, permissions = ?
+                WHERE user_id = ?
+            """, (nama, no_hp or None, tg2, username,
+                  is_superadmin, Json(permissions), user_id))
+        conn.commit()
+
     return redirect(url_for("superadmin.whitelist"))
 
 
@@ -261,55 +247,13 @@ def edit_whitelist(user_id):
 @superadmin_required
 def hapus_whitelist(user_id):
     with get_conn() as conn:
-        conn.execute("DELETE FROM whitelist_telegram WHERE whitelist_id = ?", (user_id,))
-        conn.execute("DELETE FROM whitelist WHERE user_id = ?", (user_id,))
-        conn.commit()
+        try:
+            conn.execute("DELETE FROM whitelist WHERE user_id = ?", (user_id,))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            # Gagal hapus -> biasanya karena user ini masih tercatat sebagai pembuat
+            # task/blackout/komplain (foreign key). Sengaja gak dipaksa hapus biar
+            # histori data gak jadi nyasar/rusak.
+            pass
     return redirect(url_for("superadmin.whitelist"))
-
-@superadmin_bp.route("/profile")
-@login_required
-@superadmin_required
-def profile():
-    user = get_current_user()
-    return render_template("profile.html", user=user)
-
-
-@superadmin_bp.route("/profile/ganti-password", methods=["POST"])
-@login_required
-@superadmin_required
-def ganti_password():
-    import hashlib
-    user = get_current_user()
-    password_lama = request.form.get("password_lama", "").strip()
-    password_baru = request.form.get("password_baru", "").strip()
-
-    hash_lama = hashlib.sha256(password_lama.encode()).hexdigest()
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT 1 FROM users_dashboard WHERE id = ? AND password_hash = ?",
-            (user["id"], hash_lama)
-        ).fetchone()
-        if row and password_baru:
-            conn.execute(
-                "UPDATE users_dashboard SET password_hash = ? WHERE id = ?",
-                (hashlib.sha256(password_baru.encode()).hexdigest(), user["id"])
-            )
-            conn.commit()
-    return redirect(url_for("superadmin.profile"))
-
-
-@superadmin_bp.route("/profile/edit-nama", methods=["POST"])
-@login_required
-@superadmin_required
-def edit_nama():
-    user = get_current_user()
-    nama_baru = request.form.get("nama", "").strip()
-    if nama_baru:
-        with get_conn() as conn:
-            conn.execute(
-                "UPDATE users_dashboard SET nama = ? WHERE id = ?",
-                (nama_baru, user["id"])
-            )
-            conn.commit()
-        session["nama"] = nama_baru
-    return redirect(url_for("superadmin.profile"))

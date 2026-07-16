@@ -51,8 +51,8 @@
             </div>
         </div>
 
-        {% if session.role == 'manager' %}
-        <form method="POST" action="/manager/task/{{ task.id }}/hapus" class="mt-3" onsubmit="return confirm('Hapus task ini?')">
+        {% if bisa_assign %}
+        <form method="POST" action="/dashboard/task/{{ task.id }}/hapus" class="mt-3" onsubmit="return confirm('Hapus task ini?')">
             <button type="submit" class="btn btn-danger-soft btn-sm">{{ icons.i('trash', 14) }} Hapus Task</button>
         </form>
         {% endif %}
@@ -80,7 +80,7 @@
             </div>
         </div>
 
-        {% if session.role in ('manager', 'kepala_support') %}
+        {% if bisa_assign %}
         <button class="btn btn-outline btn-sm mt-4" onclick="openModal('modalEdit')">{{ icons.i('edit', 14) }} Edit Task</button>
 
         <div class="modal-overlay" id="modalEdit" onclick="if(event.target===this)closeModal('modalEdit')">
@@ -89,7 +89,7 @@
                     <span class="modal-title">Edit Task</span>
                     <button class="btn-icon" onclick="closeModal('modalEdit')">{{ icons.i('x', 16) }}</button>
                 </div>
-                <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/edit">
+                <form method="POST" action="/dashboard/task/{{ task.id }}/edit">
                     <div class="modal-body">
                         <div class="form-group">
                             <label class="form-label">Deskripsi</label>
@@ -114,7 +114,7 @@
                             <label class="form-label">Assign ke <span class="text-muted text-xs">(Ctrl+Click multi)</span></label>
                             <select name="assignees" multiple class="form-select" size="4">
                                 {% for u in users %}
-                                <option value="{{ u.id }}">{{ u.nama }}</option>
+                                <option value="{{ u.user_id }}">{{ u.nama }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -129,15 +129,13 @@
         </div>
         {% endif %}
 
-        {% if session.role != 'manager' %}
-        <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/progres" class="progress-form">
+        <form method="POST" action="/dashboard/task/{{ task.id }}/progres" class="progress-form">
             <input type="range" name="progres" min="0" max="100" step="10"
                 value="{{ task.progres }}"
                 oninput="this.nextElementSibling.textContent = this.value + '%'">
             <span class="pct-label">{{ task.progres }}%</span>
             <button type="submit" class="btn btn-primary btn-sm">Update</button>
         </form>
-        {% endif %}
     </div>
 
     <div class="card p-5 mt-4">
@@ -153,7 +151,7 @@
         <p class="text-muted text-sm">Belum ada komentar.</p>
         {% endfor %}
 
-        <form method="POST" action="/{% if session.role == 'kepala_support' %}support{% else %}{{ session.role }}{% endif %}/task/{{ task.id }}/komentar" class="mt-3">
+        <form method="POST" action="/dashboard/task/{{ task.id }}/komentar" class="mt-3">
             <textarea name="isi" class="form-control" placeholder="Tulis update progress..."></textarea>
             <button type="submit" class="btn btn-primary btn-sm mt-2">{{ icons.i('send', 13) }} Kirim</button>
         </form>

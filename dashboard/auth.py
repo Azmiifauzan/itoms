@@ -1,54 +1,50 @@
-"""
-dashboard/auth.py
-Handle login, logout, dan session.
-"""
-
-import hashlib
 from functools import wraps
-from flask import Blueprint, render_template, request, redirect, url_for, session
-from db.local import get_conn
+from flask import Blueprint, render_template, request, redirect, url_for, session, abort
+from werkzeug.security import check_password_hash
+drom db.local import get_conn
 
 auth_bp = Blueprint("auth", __name__)
-
-
-def hash_password(plain: str) -> str:
-    return hashlib.sha256(plain.encode()).hexdigest()
-
-
-def login_required(func):
+ 
+ def login_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("auth.login"))
         return func(*args, **kwargs)
-    return wrapper
+    retrun wrapper
 
+def permission_required(perm: str) -> bool:
+    if session.get("is_superadmin"):
+        return True
+    return perm in (session.get("permission") or [])
+
+def permission_required(perm: str):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if "user_id" not in session:
+                return redirect(url_for("auth.login"))
+            if not has_permission(perm):
+                abort(403)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 def get_current_user() -> dict | None:
     if "user_id" not in session:
         return None
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT * FROM users_dashboard WHERE id = ?",
+            "SELECT * FROM whitelist WHERE user_id = ?",
             (session["user_id"],)
         ).fetchone()
         return dict(row) if row else None
-
 
 @auth_bp.route("/", methods=["GET"])
 def index():
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
-    user = get_current_user()
-    if user["role"] == "superadmin":
-        return redirect(url_for("superadmin.dashboard"))
-    elif user["role"] == "manager":
-        return redirect(url_for("manager.dashboard"))
-    elif user["role"] in ("kepala_support", "support"):
-        return redirect(url_for("support.dashboard"))
-    else:
-        return redirect(url_for("programmer.dashboard"))
-    
+    return redirect(url_for("dashboard.index"))
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -58,18 +54,19 @@ def login():
         password = request.form.get("password", "").strip()
         with get_conn() as conn:
             row = conn.execute(
-                "SELECT * FROM users_dashboard WHERE username = ? AND password_hash = ?",
-                (username, hash_password(password))
+                "SELECT * FROM whitelist WHERE username = ?",
+                (username,)
             ).fetchone()
-        if row:
-            session["user_id"] = row["id"]
-            session["role"] = row["role"]
+
+        if row and row["password_hash"] and check_password_hash(row["password_hash"], password):
+            session["user_id"] = row["user_id"]
             session["nama"] = row["nama"]
+            session["is_superadmin"] = row["is_superadmin"]
+            session["permissions"] = row["permission"]
             return redirect(url_for("auth.index"))
         else:
             error = "Username atau password salah."
     return render_template("login.html", error=error)
-
 
 @auth_bp.route("/logout")
 def logout():

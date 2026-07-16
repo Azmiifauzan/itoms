@@ -12,7 +12,7 @@
 .sa-stat-num{font-family:var(--font-display);font-size:32px;font-weight:800;line-height:1}
 .sa-stat-sub{font-size:12px;color:var(--text-muted);margin-top:6px}
 
-.sa-link-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sa-link-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 @media(max-width:800px){.sa-link-grid{grid-template-columns:1fr}}
 .sa-link-card{display:flex;flex-direction:column;gap:10px;transition:box-shadow .2s,transform .15s,border-color .2s}
 .sa-link-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);border-color:#CBD5E1}
@@ -44,10 +44,10 @@
 </div>
 
 <div class="sa-link-grid">
-    <a href="/superadmin/telegram" class="card p-5 sa-link-card">
-        <div class="sa-link-icon">{{ icons.i('send', 19) }}</div>
-        <div class="sa-link-title">Kelola Telegram ID</div>
-        <div class="sa-link-desc">Tambah multiple Telegram ID per user whitelist</div>
+    <a href="/superadmin/whitelist" class="card p-5 sa-link-card">
+        <div class="sa-link-icon">{{ icons.i('users', 19) }}</div>
+        <div class="sa-link-title">Kelola Whitelist &amp; User</div>
+        <div class="sa-link-desc">Kelola akses bot, login dashboard, dan permission tiap user</div>
     </a>
     <a href="/superadmin/libur" class="card p-5 sa-link-card">
         <div class="sa-link-icon">{{ icons.i('calendar-check', 19) }}</div>

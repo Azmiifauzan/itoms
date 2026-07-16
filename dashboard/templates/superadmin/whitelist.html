@@ -1,23 +1,28 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
 {% block title %}Kelola Whitelist{% endblock %}
-{% block page_title %}Kelola Whitelist Bot{% endblock %}
+{% block page_title %}Kelola Whitelist &amp; User{% endblock %}
 
 {% block extra_style %}
 .table-scroll{overflow-x:auto;border-radius:var(--radius)}
-.wl-table{width:100%;border-collapse:collapse;min-width:640px}
+.wl-table{width:100%;border-collapse:collapse;min-width:820px}
 .wl-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)}
 .wl-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
 .wl-table tr:last-child td{border-bottom:none}
 .wl-table tr:hover td{background:var(--bg-hover)}
 .wl-id-val{font-family:monospace;font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:5px}
+.wl-perm-chip{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:8px;background:var(--primary-light);color:var(--primary);margin:1px 2px 1px 0}
+.wl-superadmin-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#B45309}
+.wl-none{color:var(--text-muted);font-size:12px}
+.perm-check-grid{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.perm-check-item{display:flex;align-items:center;gap:8px;font-size:13px}
 {% endblock %}
 
 {% block content %}
 <div class="flex-between mb-4">
     <div>
-        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.i('users', 17) }} Whitelist Bot</div>
-        <div class="text-muted text-sm mt-1">{{ whitelist|length }} user terdaftar</div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.i('users', 17) }} Whitelist &amp; User</div>
+        <div class="text-muted text-sm mt-1">{{ whitelist|length }} user terdaftar — akses bot Telegram + login dashboard jadi 1</div>
     </div>
     <button class="btn btn-primary" onclick="openModal('modalTambahWL')">{{ icons.i('plus', 14) }} Tambah User</button>
 </div>
@@ -29,7 +34,8 @@
             <tr>
                 <th>Nama</th>
                 <th>Telegram ID</th>
-                <th>Nama Jadwal</th>
+                <th>Username</th>
+                <th>Akses</th>
                 <th>No HP</th>
                 <th>Ditambahkan</th>
                 <th style="text-align:right">Aksi</th>
@@ -39,10 +45,22 @@
             {% for w in whitelist %}
             <tr>
                 <td style="font-weight:700">{{ w.nama }}</td>
-                <td><span class="wl-id-val">{{ w.user_id }}</span></td>
-                <td><span class="text-muted">{{ w.nama_jadwal or '—' }}</span></td>
+                <td>
+                    <span class="wl-id-val">{{ w.user_id }}</span>
+                    {% if w.telegram_id_2 %}<br><span class="wl-id-val" style="margin-top:3px;display:inline-block">{{ w.telegram_id_2 }}</span>{% endif %}
+                </td>
+                <td><span class="text-muted">{{ w.username or '—' }}</span></td>
+                <td>
+                    {% if w.is_superadmin %}
+                    <span class="wl-superadmin-badge">{{ icons.i('shield', 11) }} Superadmin</span>
+                    {% elif w.permissions %}
+                        {% for p in w.permissions %}<span class="wl-perm-chip">{{ p }}</span>{% endfor %}
+                    {% else %}
+                        <span class="wl-none">Gak ada izin khusus</span>
+                    {% endif %}
+                </td>
                 <td><span class="text-muted">{{ w.no_hp or '—' }}</span></td>
-                <td><span class="text-muted text-sm">{{ w.added_at[:10] if w.added_at else '—' }}</span></td>
+                <td><span class="text-muted text-sm">{{ w.added_at.strftime('%Y-%m-%d') if w.added_at else '—' }}</span></td>
                 <td>
                     <div class="flex gap-2" style="justify-content:flex-end">
                         <button class="btn btn-outline btn-xs" onclick="openModal('modalEdit{{ w.user_id }}')">{{ icons.i('edit', 12) }} Edit</button>
@@ -55,7 +73,7 @@
 
             <!-- Modal Edit -->
             <div class="modal-overlay" id="modalEdit{{ w.user_id }}" onclick="if(event.target===this)closeModal('modalEdit{{ w.user_id }}')">
-                <div class="modal-box" style="max-width:400px">
+                <div class="modal-box" style="max-width:440px">
                     <div class="modal-header">
                         <span class="modal-title">Edit — {{ w.nama }}</span>
                         <button class="btn-icon" onclick="closeModal('modalEdit{{ w.user_id }}')">{{ icons.i('x', 16) }}</button>
@@ -66,13 +84,41 @@
                                 <label class="form-label">Nama</label>
                                 <input type="text" name="nama" value="{{ w.nama }}" required class="form-control">
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Nama Jadwal <span class="text-muted text-xs">(nama yang dipakai di file Excel jadwal)</span></label>
-                                <input type="text" name="nama_jadwal" value="{{ w.nama_jadwal or '' }}" class="form-control" placeholder="contoh: Azmii">
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">No HP</label>
+                                    <input type="text" name="no_hp" value="{{ w.no_hp or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Telegram ID Kedua <span class="text-muted text-xs">(opsional)</span></label>
+                                    <input type="text" name="telegram_id_2" value="{{ w.telegram_id_2 or '' }}" class="form-control">
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">No HP</label>
-                                <input type="text" name="no_hp" value="{{ w.no_hp or '' }}" class="form-control" placeholder="contoh: 6281234567890">
+                                <label class="form-label">Username Dashboard</label>
+                                <input type="text" name="username" value="{{ w.username or '' }}" required class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Password Baru <span class="text-muted text-xs">(kosongin kalau gak mau ganti)</span></label>
+                                <input type="password" name="password_baru" class="form-control" placeholder="••••••••">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" name="is_superadmin" {% if w.is_superadmin %}checked{% endif %}>
+                                    Superadmin <span class="text-muted text-xs">(bypass semua permission)</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Permissions</label>
+                                <div class="perm-check-grid">
+                                    {% for perm_val, perm_label in available_permissions %}
+                                    <label class="perm-check-item">
+                                        <input type="checkbox" name="permissions" value="{{ perm_val }}"
+                                            {% if w.permissions and perm_val in w.permissions %}checked{% endif %}>
+                                        {{ perm_label }}
+                                    </label>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -84,18 +130,20 @@
             </div>
             {% else %}
             <tr>
-                <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada user di whitelist</td>
+                <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada user di whitelist</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     </div>
 </div>
+
+<!-- Modal Tambah -->
 <div class="modal-overlay" id="modalTambahWL" onclick="if(event.target===this)closeModal('modalTambahWL')">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:440px">
         <div class="modal-header">
-            <span class="modal-title">Tambah User Whitelist</span>
-            <button class="btn-icon" onclick="closeModal('modalTambahWL')">✕</button>
+            <span class="modal-title">Tambah User Baru</span>
+            <button class="btn-icon" onclick="closeModal('modalTambahWL')">{{ icons.i('x', 16) }}</button>
         </div>
         <form method="POST" action="/superadmin/whitelist/tambah">
             <div class="modal-body">
@@ -103,18 +151,47 @@
                     <label class="form-label">Nama</label>
                     <input type="text" name="nama" required class="form-control" placeholder="Nama lengkap">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Telegram User ID</label>
-                    <input type="text" name="user_id" required class="form-control" placeholder="contoh: 123456789">
-                    <div class="form-hint">Cek via /myid di bot Telegram</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Nama Jadwal <span class="text-muted text-xs">(untuk file Excel jadwal)</span></label>
-                    <input type="text" name="nama_jadwal" class="form-control" placeholder="contoh: Azmii">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Telegram User ID</label>
+                        <input type="text" name="user_id" required class="form-control" placeholder="contoh: 123456789">
+                        <div class="form-hint">Cek via bot @userinfobot</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telegram ID Kedua <span class="text-muted text-xs">(opsional)</span></label>
+                        <input type="text" name="telegram_id_2" class="form-control">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">No HP</label>
                     <input type="text" name="no_hp" class="form-control" placeholder="contoh: 6281234567890">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Username Dashboard</label>
+                        <input type="text" name="username" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" required class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" name="is_superadmin">
+                        Superadmin <span class="text-muted text-xs">(bypass semua permission)</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Permissions</label>
+                    <div class="perm-check-grid">
+                        {% for perm_val, perm_label in available_permissions %}
+                        <label class="perm-check-item">
+                            <input type="checkbox" name="permissions" value="{{ perm_val }}">
+                            {{ perm_label }}
+                        </label>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">

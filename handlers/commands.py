@@ -12,7 +12,6 @@ from config import Config
 from db.hris import get_employee_by_noabsen
 from db.pos import create_pos_user, is_user_exists
 from db.connections import test_all_connections
-from db.local import is_allowed, add_user, remove_user, list_users
 from db.local import (is_allowed, add_user, remove_user, list_users,
                       simpan_komplain, get_komplain_by_message,
                       get_komplain_terakhir, simpan_response)
@@ -196,7 +195,7 @@ async def cmd_adduser(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ User ID harus berupa angka.")
         return
 
-    ok = add_user(target_id, nama, added_by=update.effective_user.id)
+    ok = add_user(target_id, nama)
     if ok:
         await update.message.reply_text(
             f"✅ <b>{nama}</b> (<code>{target_id}</code>) berhasil ditambahkan ke whitelist.",
@@ -255,9 +254,10 @@ async def cmd_listuser(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     lines = [f"📋 <b>Whitelist ({len(users)} user):</b>\n"]
     for u in users:
+        ditambah = u['added_at'].strftime('%Y-%m-%d %H:%M') if u['added_at'] else '-'
         lines.append(
             f"• <b>{u['nama']}</b> — <code>{u['user_id']}</code>\n"
-            f"  <i>ditambah {u['added_at']}</i>"
+            f"  <i>ditambah {ditambah}</i>"
         )
     await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 

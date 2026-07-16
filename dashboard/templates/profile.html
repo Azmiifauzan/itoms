@@ -21,13 +21,13 @@
         <div class="settings-avatar">{{ (user.nama or 'U')[0].upper() }}</div>
         <div>
             <div class="settings-name">{{ user.nama }}</div>
-            <div class="settings-role">{{ (session.role or '').replace('_',' ').title() }}</div>
+            {% if session.is_superadmin %}<div class="settings-role">Superadmin</div>{% endif %}
         </div>
     </div>
 
     <div class="card section-card">
         <div class="section-card-title">{{ icons.i('user', 16) }} Edit Nama</div>
-        <form method="POST" action="/{{ session.role if session.role != 'kepala_support' else 'support' }}/profile/edit-nama">
+        <form method="POST" action="/dashboard/profile/edit-nama">
             <div class="form-group">
                 <label class="form-label">Nama Lengkap</label>
                 <input type="text" name="nama" value="{{ user.nama }}" required class="form-control">
@@ -38,7 +38,7 @@
 
     <div class="card section-card">
         <div class="section-card-title">{{ icons.i('lock', 16) }} Ganti Password</div>
-        <form method="POST" action="/{{ session.role if session.role != 'kepala_support' else 'support' }}/profile/ganti-password">
+        <form method="POST" action="/dashboard/profile/ganti-password">
             <div class="form-group">
                 <label class="form-label">Password Lama</label>
                 <input type="password" name="password_lama" required class="form-control">
