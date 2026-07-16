@@ -74,7 +74,7 @@ def main():
     app.add_handler(CommandHandler("adduser",     cmd_adduser))
     app.add_handler(CommandHandler("removeuser",  cmd_removeuser))
     app.add_handler(CommandHandler("listuser",    cmd_listuser))
-    app.add_handler(CommandHandler("cekid",       cmd_cekid))
+    app.add_handler(CommandHandler("info",       cmd_cekid))
     app.add_handler(CommandHandler("share",       cmd_share))
     app.add_handler(CommandHandler("restart_adempiere", cmd_restart_adempiere))
     app.add_handler(CommandHandler("stop_adempiere",    cmd_stop_adempiere))

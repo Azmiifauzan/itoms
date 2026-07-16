@@ -23,8 +23,7 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────
 # Decorator: cek whitelist dari SQLite
 # ──────────────────────────────────────────
-def restricted(func):
-    """Tolak user yang tidak ada di whitelist SQLite."""
+def restricted(func):    
     @wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
