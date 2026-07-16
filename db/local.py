@@ -1,10 +1,30 @@
+"""
+db/local.py
+Koneksi PostgreSQL buat ITOMS.
+
+Nama file/module ini tetap "local" (bukan "postgres") biar semua file lain yang
+udah nulis `from db.local import get_conn` gak perlu diubah satu-satu — cukup
+ganti isi module ini aja.
+
+Info koneksi diambil dari config.py (Config.LOCAL_DB_*), konsisten sama HRIS/WEBSERV
+yang udah ada di config.py — bukan bikin cara baru sendiri.
+
+PENTING — beda sama versi SQLite lama:
+- Placeholder tetap boleh pakai "?" di query (otomatis di-translate ke "%s").
+- "INSERT OR IGNORE" SQLite TIDAK otomatis diterjemahkan — itu harus di-edit manual
+  per file jadi "INSERT ... ON CONFLICT (...) DO NOTHING" (sintaks Postgres).
+- conn.execute(...) tetap ada (dibungkus biar mirip sqlite3.Connection), return-nya
+  punya .fetchall() / .fetchone() kayak biasa. Row hasil query tetap bisa diakses
+  pakai row["nama_kolom"] (pakai RealDictCursor).
+"""
+
 import psycopg2
 import psycopg2.extras
 from config import Config
 
 
 class _CursorResult:
-   
+    """Wrapper cursor psycopg2 biar mirip return value sqlite3 (.fetchall/.fetchone)."""
 
     def __init__(self, cursor):
         self._cursor = cursor
@@ -21,12 +41,14 @@ class _CursorResult:
 
     @property
     def lastrowid(self):
-        
+        # Postgres gak punya lastrowid otomatis kayak SQLite.
+        # Kalau butuh id abis INSERT, tambahin "RETURNING id" di query-nya,
+        # terus ambil lewat .fetchone()["id"] bukan lewat .lastrowid ini.
         return None
 
 
 class PGConnection:
-    
+    """Wrapper psycopg2.connection biar cara pakainya semirip mungkin sqlite3.Connection lama."""
 
     def __init__(self, raw_conn):
         self._conn = raw_conn
@@ -46,7 +68,7 @@ class PGConnection:
     def close(self):
         self._conn.close()
 
-
+    # Biar tetap bisa dipakai gaya "with get_conn() as conn:" kayak sebelumnya
     def __enter__(self):
         return self
 
@@ -72,6 +94,7 @@ def get_conn() -> PGConnection:
 
 
 def init_db():
+    """Bikin semua tabel kalau belum ada (idempotent, aman dipanggil berkali-kali)."""
     ddl = """
     CREATE TABLE IF NOT EXISTS whitelist (
         user_id BIGINT PRIMARY KEY, nama TEXT NOT NULL, no_hp TEXT,
@@ -158,6 +181,7 @@ def init_db():
 # ──────────────────────────────────────────
 
 def is_allowed(user_id: int) -> bool:
+    """Cek apakah user_id boleh akses bot (cek user_id utama ATAU telegram_id_2)."""
     with get_conn() as conn:
         row = conn.execute(
             "SELECT 1 FROM whitelist WHERE user_id = ? OR telegram_id_2 = ?",
@@ -167,6 +191,8 @@ def is_allowed(user_id: int) -> bool:
 
 
 def add_user(user_id: int, nama: str) -> bool:
+    """Tambah user ke whitelist (cuma telegram, belum ada login dashboard).
+    Return False kalau user_id udah ada."""
     with get_conn() as conn:
         try:
             conn.execute(
@@ -181,6 +207,8 @@ def add_user(user_id: int, nama: str) -> bool:
 
 
 def remove_user(user_id: int) -> bool:
+    """Hapus user dari whitelist. Return False kalau gak ketemu atau gagal
+    (misal dia masih tercatat sebagai pembuat task/blackout)."""
     with get_conn() as conn:
         try:
             cur = conn.execute("DELETE FROM whitelist WHERE user_id = ?", (user_id,))
@@ -198,6 +226,10 @@ def list_users() -> list[dict]:
         ).fetchall()
         return [dict(r) for r in rows]
 
+
+# ──────────────────────────────────────────
+# Komplain operations
+# ──────────────────────────────────────────
 
 def simpan_komplain(message_id: int, chat_id: int, grup_nama: str, isi_pesan: str, pengirim: str) -> int:
     with get_conn() as conn:
@@ -238,3 +270,46 @@ def simpan_response(komplain_id: int, message_id: int, chat_id: int,
             VALUES (?, ?, ?, ?, ?, ?)
         """, (komplain_id, message_id, chat_id, responder_id, responder_nama, isi_balasan))
         conn.commit()
+
+
+# ──────────────────────────────────────────
+# Jadwal operations
+# ──────────────────────────────────────────
+
+def get_jadwal_by_bulan(tahun: int, bulan: int) -> list[dict]:
+    """Ambil semua jadwal dalam 1 bulan. tanggal dikembalikan sebagai string YYYY-MM-DD
+    (biar cocok sama cara template jadwal.html bikin key tanggal)."""
+    awal_bulan = f"{tahun}-{bulan:02d}-01"
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT id, nama, tanggal, tipe FROM jadwal
+            WHERE tanggal >= ? AND tanggal < (?::date + INTERVAL '1 month')
+            ORDER BY tanggal, tipe
+        """, (awal_bulan, awal_bulan)).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["tanggal"] = d["tanggal"].isoformat()
+            result.append(d)
+        return result
+
+
+def upsert_jadwal(nama: str, tanggal: str, tipe: str):
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO jadwal (nama, tanggal, tipe) VALUES (?, ?, ?)
+            ON CONFLICT (nama, tanggal, tipe) DO NOTHING
+        """, (nama, tanggal, tipe))
+        conn.commit()
+
+
+def delete_jadwal(jadwal_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM jadwal WHERE id = ?", (jadwal_id,))
+        conn.commit()
+
+
+def get_all_nama_jadwal() -> list[str]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT DISTINCT nama FROM jadwal ORDER BY nama").fetchall()
+        return [r["nama"] for r in rows]
