@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, session, abort
 from werkzeug.security import check_password_hash
-drom db.local import get_conn
+from db.local import get_conn
 
 auth_bp = Blueprint("auth", __name__)
  
