@@ -1,24 +1,38 @@
+"""
+dashboard/auth.py
+Handle login, logout, session, dan permission check.
+"""
+
 from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, session, abort
 from werkzeug.security import check_password_hash
 from db.local import get_conn
 
 auth_bp = Blueprint("auth", __name__)
- 
+
+
 def login_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("auth.login"))
         return func(*args, **kwargs)
-    retrun wrapper
+    return wrapper
 
-def permission_required(perm: str) -> bool:
+
+def has_permission(perm: str) -> bool:
+    """Cek permission user yang lagi login. Superadmin selalu lolos apapun."""
     if session.get("is_superadmin"):
         return True
-    return perm in (session.get("permission") or [])
+    return perm in (session.get("permissions") or [])
+
 
 def permission_required(perm: str):
+    """
+    Decorator buat route yang butuh permission tertentu, misal:
+        @permission_required("generate_jadwal")
+    Superadmin otomatis lolos semua permission.
+    """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -30,6 +44,7 @@ def permission_required(perm: str):
         return wrapper
     return decorator
 
+
 def get_current_user() -> dict | None:
     if "user_id" not in session:
         return None
@@ -40,11 +55,16 @@ def get_current_user() -> dict | None:
         ).fetchone()
         return dict(row) if row else None
 
+
 @auth_bp.route("/", methods=["GET"])
 def index():
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
+    # Semua orang login diarahin ke Dashboard (ada task, nanti ranking).
+    # Superadmin tetap liat menu tambahan di sidebar lewat flag is_superadmin,
+    # gak perlu halaman dashboard terpisah lagi kayak sistem role lama.
     return redirect(url_for("dashboard.index"))
+
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -62,11 +82,12 @@ def login():
             session["user_id"] = row["user_id"]
             session["nama"] = row["nama"]
             session["is_superadmin"] = row["is_superadmin"]
-            session["permissions"] = row["permission"]
+            session["permissions"] = row["permissions"]  # udah otomatis jadi list Python (kolom JSONB)
             return redirect(url_for("auth.index"))
         else:
             error = "Username atau password salah."
     return render_template("login.html", error=error)
+
 
 @auth_bp.route("/logout")
 def logout():
