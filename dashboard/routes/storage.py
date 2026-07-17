@@ -33,6 +33,15 @@ from db.local import get_conn
 
 storage_bp = Blueprint("storage", __name__, url_prefix="/storage")
 
+# Matiin limit "decompression bomb" Pillow — defaultnya Pillow nolak buka gambar
+# beresolusi sangat tinggi (misal screenshot 4K/hasil scan) buat jaga-jaga dari
+# file jahat. File di sini upload internal (bukan dari publik), jadi aman dimatiin.
+try:
+    from PIL import Image as _PILImage
+    _PILImage.MAX_IMAGE_PIXELS = None
+except ImportError:
+    pass
+
 # Daftarin HEIC opener sekali aja pas module di-load, biar Pillow bisa buka .heic/.heif
 try:
     import pillow_heif
@@ -88,35 +97,46 @@ def _cache_path(rel_path: str, mtime: float, suffix: str) -> str:
     return os.path.join(CACHE_DIR, f"{key}.jpg")
 
 
-def _get_or_make_thumbnail(abs_path: str, rel_path: str, size_px: int = 240) -> str:
-    """Thumbnail kecil (buat list) — resize + di-cache ke disk."""
+def _get_or_make_thumbnail(abs_path: str, rel_path: str, size_px: int = 240):
+    """
+    Thumbnail kecil (buat list) — resize + di-cache ke disk.
+    Return path cache kalau sukses, atau None kalau gagal (misal file korup) —
+    pemanggilnya harus fallback ke file asli kalau dapet None.
+    """
     stat = os.stat(abs_path)
     cache_path = _cache_path(rel_path, stat.st_mtime, f"thumb{size_px}")
     if os.path.exists(cache_path):
         return cache_path
-    from PIL import Image
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    img = Image.open(abs_path)
-    img = img.convert("RGB")
-    img.thumbnail((size_px, size_px))
-    img.save(cache_path, format="JPEG", quality=80)
-    return cache_path
+    try:
+        from PIL import Image
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        img = Image.open(abs_path)
+        img = img.convert("RGB")
+        img.thumbnail((size_px, size_px))
+        img.save(cache_path, format="JPEG", quality=80)
+        return cache_path
+    except Exception:
+        return None
 
 
-def _get_or_make_full_preview(abs_path: str, rel_path: str) -> str:
+def _get_or_make_full_preview(abs_path: str, rel_path: str):
     """
     Versi full (buat lightbox) — cuma dipakai buat HEIC (karena harus dikonversi).
     Gambar biasa (jpg/png) gak lewat sini, langsung diserve file aslinya.
+    Return None kalau gagal convert (file korup dll).
     """
     stat = os.stat(abs_path)
     cache_path = _cache_path(rel_path, stat.st_mtime, "full")
     if os.path.exists(cache_path):
         return cache_path
-    from PIL import Image
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    img = Image.open(abs_path).convert("RGB")
-    img.save(cache_path, format="JPEG", quality=90)
-    return cache_path
+    try:
+        from PIL import Image
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        img = Image.open(abs_path).convert("RGB")
+        img.save(cache_path, format="JPEG", quality=90)
+        return cache_path
+    except Exception:
+        return None
 
 
 # ──────────────────────────────────────────
@@ -417,7 +437,7 @@ def index():
             continue
 
     meta_map = _get_meta_map(all_rel)
-    perm_map = _get_perm_map(folder_rel_list)
+    perm_map = _get_perm_map(all_rel)  # sekarang nyakup file juga, bukan cuma folder
 
     # Filter folder privat (invisible buat yang bukan owner/superadmin), tandain folder password
     visible_folders = []
@@ -430,8 +450,16 @@ def index():
             continue  # invisible
         visible_folders.append(f)
 
+    visible_files = []
     for f in files:
         f["meta"] = meta_map.get(f["rel_path"])
+        perm = perm_map.get(f["rel_path"])
+        f["perm_mode"] = perm["mode"] if perm else "public"
+        f["perm_owner"] = perm["owner"] if perm else None
+        if perm and perm["mode"] == "private" and role != "superadmin" and perm["owner"] != nama:
+            continue  # invisible
+        visible_files.append(f)
+    files = visible_files
 
     try:
         total, used, free = shutil.disk_usage(BASE_PATH)
@@ -521,6 +549,27 @@ def mkdir():
 
         if privasi in ("private", "password"):
             _set_folder_perm(meta_rel, privasi, nama, password if privasi == "password" else None)
+
+    return redirect(url_for("storage.index", path=rel_path))
+
+
+@storage_bp.route("/set-privacy", methods=["POST"])
+@login_required
+def set_privacy():
+    """Ubah privasi item (file ATAU folder) yang udah ada — bukan cuma pas bikin baru."""
+    rel_path = request.form.get("path", "").strip("/")
+    _enforce_access(rel_path)  # harus punya akses ke folder tempat item ini berada
+
+    target_name = os.path.basename(request.form.get("target_name", "").strip())
+    mode = request.form.get("mode", "public")
+    password = request.form.get("privasi_password", "").strip()
+
+    if target_name and mode in ("public", "private", "password"):
+        abs_dir = _safe_join(rel_path)
+        target_full = os.path.join(abs_dir, target_name)
+        if os.path.exists(target_full):
+            target_rel = f"{rel_path}/{target_name}".strip("/") if rel_path else target_name
+            _set_folder_perm(target_rel, mode, _current_nama(), password if mode == "password" else None)
 
     return redirect(url_for("storage.index", path=rel_path))
 
@@ -648,8 +697,7 @@ def raw():
     tanpa itu -> versi full buat lightbox (asli utuh, HEIC tetap dikonversi tapi di-cache juga)
     """
     rel_path = request.args.get("path", "").strip("/")
-    parent = rel_path.rsplit("/", 1)[0] if "/" in rel_path else ""
-    _enforce_access(parent)
+    _enforce_access(rel_path)  # cek file itu sendiri (otomatis ikut aturan folder induk kalau file gak punya aturan sendiri)
 
     abs_path = _safe_join(rel_path)
     if not os.path.isfile(abs_path):
@@ -665,11 +713,16 @@ def raw():
             cache_path = _get_or_make_thumbnail(abs_path, rel_path)
         else:
             cache_path = _get_or_make_full_preview(abs_path, rel_path)
+        if cache_path is None:
+            abort(415, "Gagal proses file HEIC ini")
         return send_file(cache_path, mimetype="image/jpeg")
 
     if os.path.splitext(name)[1].lower() in IMAGE_EXT:
         if want_thumb:
             cache_path = _get_or_make_thumbnail(abs_path, rel_path)
+            if cache_path is None:
+                # gagal bikin thumbnail (misal file gede/korup) -> fallback serve aslinya langsung
+                return send_file(abs_path)
             return send_file(cache_path, mimetype="image/jpeg")
         return send_file(abs_path)  # full asli, browser otomatis cache via ETag/Last-Modified
 
@@ -683,8 +736,7 @@ def raw():
 @login_required
 def download():
     rel_path = request.args.get("path", "").strip("/")
-    parent = rel_path.rsplit("/", 1)[0] if "/" in rel_path else ""
-    _enforce_access(parent)
+    _enforce_access(rel_path)
 
     abs_path = _safe_join(rel_path)
     if not os.path.isfile(abs_path):

@@ -14,12 +14,12 @@ from db.local import get_conn
 superadmin_bp = Blueprint("superadmin", __name__, url_prefix="/superadmin")
 
 # Daftar permission yang tersedia di sistem. Tambahin di sini kalau ada fitur baru
-# yang butuh permission baru (misal nanti "approve_retur", "kelola_artikel", dst).
+# yang butuh permission baru.
 AVAILABLE_PERMISSIONS = [
     ("assign_task", "Assign Task"),
     ("ranking", "Lihat Ranking"),
-    ("generate_jadwal", "Generate Jadwal"),
-    ("download_jadwal", "Download Jadwal"),
+    ("generate_jadwal", "Kelola & Generate Jadwal"),
+    ("config_bot", "Konfigurasi Bot"),
 ]
 
 

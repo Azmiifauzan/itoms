@@ -14,8 +14,13 @@
 .wl-perm-chip{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:8px;background:var(--primary-light);color:var(--primary);margin:1px 2px 1px 0}
 .wl-superadmin-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#B45309}
 .wl-none{color:var(--text-muted);font-size:12px}
-.perm-check-grid{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-.perm-check-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.perm-chip-option{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;transition:border-color .15s,background .15s}
+.perm-chip-option:hover{background:var(--bg-hover)}
+.perm-chip-option input{accent-color:var(--primary);flex-shrink:0}
+.perm-chip-option.checked-visual{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:600}
+.superadmin-toggle{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);height:100%;box-sizing:border-box}
+.superadmin-toggle input{accent-color:var(--warning);flex-shrink:0}
 {% endblock %}
 
 {% block content %}
@@ -86,35 +91,45 @@
                             </div>
                             <div class="grid-2">
                                 <div class="form-group">
-                                    <label class="form-label">No HP</label>
-                                    <input type="text" name="no_hp" value="{{ w.no_hp or '' }}" class="form-control">
+                                    <label class="form-label">Telegram User ID</label>
+                                    <input type="text" class="form-control" value="{{ w.user_id }}" disabled style="opacity:.6">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Telegram ID Kedua <span class="text-muted text-xs">(opsional)</span></label>
                                     <input type="text" name="telegram_id_2" value="{{ w.telegram_id_2 or '' }}" class="form-control">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Username Dashboard</label>
-                                <input type="text" name="username" value="{{ w.username or '' }}" required class="form-control">
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">No HP</label>
+                                    <input type="text" name="no_hp" value="{{ w.no_hp or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Username Dashboard</label>
+                                    <input type="text" name="username" value="{{ w.username or '' }}" required class="form-control">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Password Baru <span class="text-muted text-xs">(kosongin kalau gak mau ganti)</span></label>
-                                <input type="password" name="password_baru" class="form-control" placeholder="••••••••">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <input type="checkbox" name="is_superadmin" {% if w.is_superadmin %}checked{% endif %}>
-                                    Superadmin <span class="text-muted text-xs">(bypass semua permission)</span>
-                                </label>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Password Baru <span class="text-muted text-xs">(kosongin = gak ganti)</span></label>
+                                    <input type="password" name="password_baru" class="form-control" placeholder="••••••••">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">&nbsp;</label>
+                                    <label class="superadmin-toggle">
+                                        <input type="checkbox" name="is_superadmin" {% if w.is_superadmin %}checked{% endif %}>
+                                        <span>Superadmin</span>
+                                    </label>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Permissions</label>
-                                <div class="perm-check-grid">
+                                <div class="perm-grid">
                                     {% for perm_val, perm_label in available_permissions %}
-                                    <label class="perm-check-item">
+                                    <label class="perm-chip-option {% if w.permissions and perm_val in w.permissions %}checked-visual{% endif %}">
                                         <input type="checkbox" name="permissions" value="{{ perm_val }}"
-                                            {% if w.permissions and perm_val in w.permissions %}checked{% endif %}>
+                                            {% if w.permissions and perm_val in w.permissions %}checked{% endif %}
+                                            onchange="this.closest('.perm-chip-option').classList.toggle('checked-visual', this.checked)">
                                         {{ perm_label }}
                                     </label>
                                     {% endfor %}
@@ -162,32 +177,36 @@
                         <input type="text" name="telegram_id_2" class="form-control">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">No HP</label>
-                    <input type="text" name="no_hp" class="form-control" placeholder="contoh: 6281234567890">
-                </div>
                 <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">No HP</label>
+                        <input type="text" name="no_hp" class="form-control" placeholder="contoh: 6281234567890">
+                    </div>
                     <div class="form-group">
                         <label class="form-label">Username Dashboard</label>
                         <input type="text" name="username" required class="form-control">
                     </div>
+                </div>
+                <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Password</label>
                         <input type="password" name="password" required class="form-control">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">
-                        <input type="checkbox" name="is_superadmin">
-                        Superadmin <span class="text-muted text-xs">(bypass semua permission)</span>
-                    </label>
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <label class="superadmin-toggle">
+                            <input type="checkbox" name="is_superadmin">
+                            <span>Superadmin</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Permissions</label>
-                    <div class="perm-check-grid">
+                    <div class="perm-grid">
                         {% for perm_val, perm_label in available_permissions %}
-                        <label class="perm-check-item">
-                            <input type="checkbox" name="permissions" value="{{ perm_val }}">
+                        <label class="perm-chip-option">
+                            <input type="checkbox" name="permissions" value="{{ perm_val }}"
+                                onchange="this.closest('.perm-chip-option').classList.toggle('checked-visual', this.checked)">
                             {{ perm_label }}
                         </label>
                         {% endfor %}
