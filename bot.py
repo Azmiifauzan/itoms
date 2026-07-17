@@ -43,8 +43,8 @@ async def _setup_scheduler(app):
     di titik ini event loop asyncio-nya udah jalan jadi aman buat AsyncIOScheduler."""
     scheduler = AsyncIOScheduler(timezone=WIB)
     scheduler.add_job(jadwal_job_off, "cron", hour=8, minute=0, args=[app])
-    scheduler.add_job(jadwal_job_piket, "cron", hour=8, minute=30, args=[app])
-    scheduler.add_job(jadwal_job_oncall, "cron", hour=17, minute=0, args=[app])
+    scheduler.add_job(jadwal_job_piket, "cron", hour=6, minute=30, args=[app])
+    scheduler.add_job(jadwal_job_oncall, "cron", hour=17, minute=25, args=[app])
     scheduler.start()
     logger.info("Scheduler jadwal reminder aktif (off 08:00, piket 08:30, oncall 17:00 WIB).")
 
