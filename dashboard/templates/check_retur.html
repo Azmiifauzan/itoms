@@ -130,18 +130,18 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">No Surat</label>
-                    <input type="text" name="no_surat" required class="form-control" placeholder="contoh: SJ-2026-0001">
+                    <input type="text" name="no_surat" required class="form-control">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Nama Artikel</label>
                         <input type="text" name="nama_artikel" required class="form-control"
                             list="artikelDatalist" autocomplete="off"
-                            oninput="crAutofillKode(this, 'kodeInput_new')" placeholder="Ketik atau pilih...">
+                            oninput="crAutofillKode(this, 'kodeInput_new')">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Kode Artikel</label>
-                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control" placeholder="Auto / manual">
+                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control">
                     </div>
                 </div>
                 <div class="form-group">
@@ -175,8 +175,7 @@
                 </div>
                 <div class="form-group" style="margin-bottom:0">
                     <label class="form-label">Dicek Oleh</label>
-                    <input type="text" class="form-control" value="{{ user.nama }}" disabled style="opacity:.7">
-                    <div class="form-hint">Otomatis dari akun login kamu</div>
+                    <input type="text" class="form-control" value="{{ user.nama }}" disabled style="opacity:.7">                    
                 </div>
             </div>
             <div class="modal-footer">
