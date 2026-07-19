@@ -60,17 +60,10 @@
 .rank-name{flex:1;font-size:13px;font-weight:600;truncate:nowrap}
 .rank-score{font-size:13px;font-weight:800;color:var(--primary)}
 
-.komplain-filter{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.komplain-filter .form-control{width:135px;padding:6px 10px;font-size:12.5px}
-.komplain-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
-.komplain-item{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--danger);border-radius:var(--radius-sm);padding:10px 12px}
-.komplain-item-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-muted);margin-bottom:5px;gap:8px}
-.komplain-grup{font-weight:600;color:var(--text)}
-.komplain-isi{font-size:13px;color:var(--text);line-height:1.4;margin-bottom:4px;white-space:pre-wrap}
-.komplain-pengirim{margin-bottom:6px}
-.komplain-responses{border-top:1px dashed var(--border);margin-top:6px;padding-top:6px;display:flex;flex-direction:column;gap:4px}
-.komplain-response{font-size:12px;color:var(--text)}
-.komplain-belum-dibales{font-style:italic}
+.komplain-card{background:linear-gradient(135deg,#B91C1C,#EF4444);border-radius:var(--radius);padding:20px;color:#fff;position:relative;overflow:hidden;margin-top:16px}
+.komplain-card .icon{position:absolute;right:14px;bottom:12px;opacity:.25;width:52px;height:52px}
+.komplain-num{font-family:var(--font-display);font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px}
+.komplain-label{font-size:12px;opacity:.85;margin-top:4px;font-weight:500}
 
 .empty-state{text-align:center;padding:36px 20px;color:var(--text-muted)}
 .empty-state .icon{opacity:.35;margin-bottom:8px}
@@ -140,8 +133,8 @@
         {% endfor %}
     </div>
 
+    {% if bisa_ranking %}
     <div>
-        {% if bisa_ranking %}
         <div class="section-head"><span class="section-title">{{ icons.i('trophy', 15) }} Ranking Responder</span></div>
         <div class="card rank-card">
             {% for r in ranking %}
@@ -158,48 +151,17 @@
             <div class="empty-state" style="padding:20px"><div class="text-muted text-sm">Belum ada data</div></div>
             {% endfor %}
         </div>
+
+        {% if stats.komplain_hari_ini is defined %}
+        <div class="section-head mt-6"><span class="section-title">{{ icons.i('alert-triangle', 15) }} Komplain Hari Ini</span></div>
+        <div class="komplain-card">
+            {{ icons.i('alert-triangle', 52) }}
+            <div class="komplain-num">{{ stats.komplain_hari_ini }}</div>
+            <div class="komplain-label">komplain masuk hari ini</div>
+        </div>
         {% endif %}
-
-        <div class="section-head {% if bisa_ranking %}mt-6{% endif %}">
-            <span class="section-title">{{ icons.i('alert-triangle', 15) }} Komplain Masuk</span>
-        </div>
-
-        <form method="GET" action="/dashboard/" class="komplain-filter">
-            <input type="date" name="dari_tanggal" value="{{ dari_tanggal }}" class="form-control">
-            <span class="text-muted text-xs">s/d</span>
-            <input type="date" name="sampai_tanggal" value="{{ sampai_tanggal }}" class="form-control">
-            <button type="submit" class="btn btn-outline btn-sm">Filter</button>
-        </form>
-
-        <div class="komplain-list">
-            {% for k in komplain %}
-            <div class="komplain-item">
-                <div class="komplain-item-head">
-                    <span class="komplain-grup">{{ k.grup_nama or '-' }}</span>
-                    <span>{{ k.masuk_at }}</span>
-                </div>
-                <div class="komplain-isi">{{ k.isi_pesan }}</div>
-                <div class="komplain-pengirim text-muted text-xs">dari {{ k.pengirim or '-' }}</div>
-                {% if k.responses %}
-                <div class="komplain-responses">
-                    {% for r in k.responses %}
-                    <div class="komplain-response">
-                        <b>{{ r.responder_nama or '-' }}</b>: {{ r.isi_balasan }}
-                        <span class="text-muted text-xs">({{ r.bales_at }})</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="komplain-belum-dibales text-muted text-xs">Belum ada balasan</div>
-                {% endif %}
-            </div>
-            {% else %}
-            <div class="card">
-                <div class="empty-state">{{ icons.i('alert-triangle', 30) }}<div>Gak ada komplain di rentang tanggal ini</div></div>
-            </div>
-            {% endfor %}
-        </div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Modal Buat Task -->
@@ -237,7 +199,7 @@
                 <div class="form-group">
                     <label class="form-label">Assign ke <span class="text-muted text-xs">(Ctrl+Click multi)</span></label>
                     <select name="assignees" multiple class="form-select" size="4">
-                        {% for u in users %}<option value="{{ u.user_id }}">{{ u.nama }}</option>{% endfor %}
+                        {% for u in users %}<option value="{{ u.id }}">{{ u.nama }}</option>{% endfor %}
                     </select>
                 </div>
                 {% endif %}

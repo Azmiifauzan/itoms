@@ -84,3 +84,16 @@
 <rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6"/><path d="M12 16v4"/>
 {%- endif -%}
 </svg>{% endmacro %}
+
+{# Monogram "CR" — dipakai khusus buat fitur Check Retur, bukan icon garis biasa #}
+{% macro cr_mark(size=20) %}<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+    <linearGradient id="crGrad{{ size }}" x1="0" y1="0" x2="32" y2="32">
+        <stop offset="0" style="stop-color:var(--cyan)"/>
+        <stop offset="1" style="stop-color:var(--accent)"/>
+    </linearGradient>
+</defs>
+<rect width="32" height="32" rx="9" fill="url(#crGrad{{ size }})"/>
+<text x="7.5" y="23" font-family="Lexend, Inter, sans-serif" font-weight="800" font-size="16" fill="#ffffff" opacity="0.5">C</text>
+<text x="13" y="24" font-family="Lexend, Inter, sans-serif" font-weight="800" font-size="17" fill="#ffffff">R</text>
+</svg>{% endmacro %}

@@ -1,3 +1,23 @@
+"""
+db/local.py
+Koneksi PostgreSQL buat ITOMS.
+
+Nama file/module ini tetap "local" (bukan "postgres") biar semua file lain yang
+udah nulis `from db.local import get_conn` gak perlu diubah satu-satu — cukup
+ganti isi module ini aja.
+
+Info koneksi diambil dari config.py (Config.LOCAL_DB_*), konsisten sama HRIS/WEBSERV
+yang udah ada di config.py — bukan bikin cara baru sendiri.
+
+PENTING — beda sama versi SQLite lama:
+- Placeholder tetap boleh pakai "?" di query (otomatis di-translate ke "%s").
+- "INSERT OR IGNORE" SQLite TIDAK otomatis diterjemahkan — itu harus di-edit manual
+  per file jadi "INSERT ... ON CONFLICT (...) DO NOTHING" (sintaks Postgres).
+- conn.execute(...) tetap ada (dibungkus biar mirip sqlite3.Connection), return-nya
+  punya .fetchall() / .fetchone() kayak biasa. Row hasil query tetap bisa diakses
+  pakai row["nama_kolom"] (pakai RealDictCursor).
+"""
+
 import psycopg2
 import psycopg2.extras
 from config import Config
@@ -149,6 +169,24 @@ def init_db():
         rel_path TEXT PRIMARY KEY,
         mode TEXT NOT NULL CHECK (mode IN ('public','private','password')),
         owner TEXT, password_hash TEXT, created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS artikel (
+        id SERIAL PRIMARY KEY,
+        kode TEXT NOT NULL UNIQUE,
+        nama TEXT NOT NULL UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS check_retur (
+        id SERIAL PRIMARY KEY,
+        no_surat TEXT NOT NULL,
+        nama_artikel TEXT NOT NULL,
+        kode_artikel TEXT,
+        kondisi TEXT NOT NULL CHECK (kondisi IN ('waste','ok','service')),
+        foto_path TEXT,
+        keterangan TEXT,
+        dicek_oleh BIGINT NOT NULL REFERENCES whitelist(user_id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     """
     with get_conn() as conn:

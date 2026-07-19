@@ -114,7 +114,7 @@
                             <label class="form-label">Assign ke <span class="text-muted text-xs">(Ctrl+Click multi)</span></label>
                             <select name="assignees" multiple class="form-select" size="4">
                                 {% for u in users %}
-                                <option value="{{ u.user_id }}">{{ u.nama }}</option>
+                                <option value="{{ u.id }}">{{ u.nama }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -129,6 +129,7 @@
         </div>
         {% endif %}
 
+        {% if not bisa_assign %}
         <form method="POST" action="/dashboard/task/{{ task.id }}/progres" class="progress-form">
             <input type="range" name="progres" min="0" max="100" step="10"
                 value="{{ task.progres }}"
@@ -136,6 +137,7 @@
             <span class="pct-label">{{ task.progres }}%</span>
             <button type="submit" class="btn btn-primary btn-sm">Update</button>
         </form>
+        {% endif %}
     </div>
 
     <div class="card p-5 mt-4">

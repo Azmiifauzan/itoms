@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}Master Artikel{% endblock %}
+{% block page_title %}Master Artikel{% endblock %}
+
+{% block extra_style %}
+.table-scroll{overflow-x:auto;border-radius:var(--radius)}
+.art-table{width:100%;border-collapse:collapse;min-width:480px}
+.art-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)}
+.art-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+.art-table tr:last-child td{border-bottom:none}
+.art-table tr:hover td{background:var(--bg-hover)}
+.kode-chip{font-family:monospace;font-size:12px;font-weight:700;background:var(--bg-hover);padding:3px 8px;border-radius:5px;color:var(--primary)}
+{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4" style="flex-wrap:wrap;gap:12px">
+    <div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.cr_mark(17) }} Master Artikel</div>
+        <div class="text-muted text-sm mt-1">{{ artikel_list|length }} artikel terdaftar — dipakai di form Check Retur</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modalTambahArtikel')">{{ icons.i('plus', 14) }} Tambah Artikel</button>
+</div>
+
+<div class="card" style="overflow:hidden">
+    <div class="table-scroll">
+    <table class="art-table">
+        <thead>
+            <tr>
+                <th>Kode</th>
+                <th>Nama Artikel</th>
+                <th style="text-align:right">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in artikel_list %}
+            <tr>
+                <td><span class="kode-chip">{{ a.kode }}</span></td>
+                <td style="font-weight:600">{{ a.nama }}</td>
+                <td>
+                    <div class="flex gap-2" style="justify-content:flex-end">
+                        <button class="btn btn-outline btn-xs" onclick="openModal('modalEditArtikel{{ a.id }}')">{{ icons.i('edit', 12) }} Edit</button>
+                        <form method="POST" action="/superadmin/artikel/hapus/{{ a.id }}" style="display:inline" onsubmit="return confirm('Hapus artikel {{ a.nama }}?')">
+                            <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('trash', 12) }} Hapus</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada artikel terdaftar</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Modal Tambah -->
+<div class="modal-overlay" id="modalTambahArtikel" onclick="if(event.target===this)closeModal('modalTambahArtikel')">
+    <div class="modal-box" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">{{ icons.cr_mark(16) }} Tambah Artikel</span>
+            <button class="btn-icon" onclick="closeModal('modalTambahArtikel')">{{ icons.i('x', 16) }}</button>
+        </div>
+        <form method="POST" action="/superadmin/artikel/tambah">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nama Artikel</label>
+                    <input type="text" name="nama" required class="form-control" placeholder="contoh: Kabel HDMI 2m">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kode Artikel</label>
+                    <input type="text" name="kode" required class="form-control" placeholder="contoh: ART-0001" style="text-transform:uppercase">
+                    <div class="form-hint">Kode ini yang bakal auto-fill di form Check Retur pas nama artikelnya dipilih</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTambahArtikel')">Batal</button>
+                <button type="submit" class="btn btn-primary">Tambah</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Edit per artikel -->
+{% for a in artikel_list %}
+<div class="modal-overlay" id="modalEditArtikel{{ a.id }}" onclick="if(event.target===this)closeModal('modalEditArtikel{{ a.id }}')">
+    <div class="modal-box" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">Edit — {{ a.nama }}</span>
+            <button class="btn-icon" onclick="closeModal('modalEditArtikel{{ a.id }}')">{{ icons.i('x', 16) }}</button>
+        </div>
+        <form method="POST" action="/superadmin/artikel/edit/{{ a.id }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nama Artikel</label>
+                    <input type="text" name="nama" value="{{ a.nama }}" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kode Artikel</label>
+                    <input type="text" name="kode" value="{{ a.kode }}" required class="form-control" style="text-transform:uppercase">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditArtikel{{ a.id }}')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

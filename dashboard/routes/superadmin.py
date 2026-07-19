@@ -20,6 +20,7 @@ AVAILABLE_PERMISSIONS = [
     ("ranking", "Lihat Ranking"),
     ("generate_jadwal", "Kelola & Generate Jadwal"),
     ("config_bot", "Konfigurasi Bot"),
+    ("edit_check_retur", "Edit Data Check Retur"),
 ]
 
 
@@ -257,3 +258,67 @@ def hapus_whitelist(user_id):
             # histori data gak jadi nyasar/rusak.
             pass
     return redirect(url_for("superadmin.whitelist"))
+
+# ──────────────────────────────────────────
+# Kelola Master Artikel (kode + nama) — dipakai di form Check Retur
+# ──────────────────────────────────────────
+@superadmin_bp.route("/artikel")
+@login_required
+@superadmin_required
+def artikel():
+    user = get_current_user()
+    with get_conn() as conn:
+        artikel_list = conn.execute(
+            "SELECT * FROM artikel ORDER BY nama"
+        ).fetchall()
+    return render_template("superadmin/artikel.html",
+        user=user, artikel_list=artikel_list,
+    )
+
+
+@superadmin_bp.route("/artikel/tambah", methods=["POST"])
+@login_required
+@superadmin_required
+def tambah_artikel():
+    kode = request.form.get("kode", "").strip().upper()
+    nama = request.form.get("nama", "").strip()
+    if kode and nama:
+        with get_conn() as conn:
+            try:
+                conn.execute(
+                    "INSERT INTO artikel (kode, nama) VALUES (?, ?)",
+                    (kode, nama)
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()  # kode atau nama udah dipakai
+    return redirect(url_for("superadmin.artikel"))
+
+
+@superadmin_bp.route("/artikel/edit/<int:artikel_id>", methods=["POST"])
+@login_required
+@superadmin_required
+def edit_artikel(artikel_id):
+    kode = request.form.get("kode", "").strip().upper()
+    nama = request.form.get("nama", "").strip()
+    if kode and nama:
+        with get_conn() as conn:
+            try:
+                conn.execute(
+                    "UPDATE artikel SET kode = ?, nama = ? WHERE id = ?",
+                    (kode, nama, artikel_id)
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+    return redirect(url_for("superadmin.artikel"))
+
+
+@superadmin_bp.route("/artikel/hapus/<int:artikel_id>", methods=["POST"])
+@login_required
+@superadmin_required
+def hapus_artikel(artikel_id):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM artikel WHERE id = ?", (artikel_id,))
+        conn.commit()
+    return redirect(url_for("superadmin.artikel"))

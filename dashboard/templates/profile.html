@@ -21,7 +21,7 @@
         <div class="settings-avatar">{{ (user.nama or 'U')[0].upper() }}</div>
         <div>
             <div class="settings-name">{{ user.nama }}</div>
-            {% if session.is_superadmin %}<div class="settings-role">Superadmin</div>{% endif %}
+            <div class="settings-role">{{ 'Superadmin' if session.is_superadmin else 'User' }}</div>
         </div>
     </div>
 

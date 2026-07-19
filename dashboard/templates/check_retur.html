@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}Check Retur{% endblock %}
+{% block page_title %}Check Retur{% endblock %}
+
+{% block extra_style %}
+.cr-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.cr-search{display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;height:38px;min-width:220px;flex:1;max-width:320px}
+.cr-search input{border:none;outline:none;background:transparent;font-size:13px;font-family:inherit;color:var(--text);width:100%;height:100%}
+.cr-search .icon{color:var(--text-muted);flex-shrink:0}
+
+.table-scroll{overflow-x:auto;border-radius:var(--radius)}
+.cr-table{width:100%;border-collapse:collapse;min-width:920px}
+.cr-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
+.cr-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.cr-table tr:last-child td{border-bottom:none}
+.cr-table tr:hover td{background:var(--bg-hover)}
+
+.kode-chip{font-family:monospace;font-size:11.5px;background:var(--bg-hover);padding:2px 7px;border-radius:5px}
+.badge-waste{background:var(--danger-bg);color:var(--danger)}
+.badge-ok{background:var(--success-bg);color:var(--success)}
+.badge-service{background:var(--warning-bg);color:var(--warning)}
+
+.cr-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer;display:block}
+.cr-thumb-empty{width:38px;height:38px;border-radius:8px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.cr-ket{max-width:200px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Preview foto full besar */
+.foto-preview-box{max-width:min(90vw,480px);text-align:center}
+.foto-preview-box img{width:100%;border-radius:var(--radius-sm);max-height:70vh;object-fit:contain}
+
+.file-drop-mini{border:1.5px dashed var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;font-size:12.5px;color:var(--text-muted);cursor:pointer;transition:border-color .15s,background .15s}
+.file-drop-mini:hover{border-color:var(--primary);background:var(--primary-light)}
+.file-drop-mini.has-file{color:var(--primary);border-color:var(--primary);font-weight:600}
+{% endblock %}
+
+{% block content %}
+<div class="cr-toolbar">
+    <div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.cr_mark(19) }} Check Retur</div>
+        <div class="text-muted text-sm mt-1">{{ rows|length }} data pengecekan</div>
+    </div>
+    <div class="flex gap-3" style="flex-wrap:wrap;flex:1;justify-content:flex-end">
+        <form class="cr-search" method="GET" action="/check-retur/">
+            {{ icons.i('search', 15) }}
+            <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / artikel...">
+        </form>
+        <button class="btn btn-primary" onclick="openModal('modalInputCR')">{{ icons.i('plus', 14) }} Input Baru</button>
+    </div>
+</div>
+
+<div class="card" style="overflow:hidden">
+    <div class="table-scroll">
+    <table class="cr-table">
+        <thead>
+            <tr>
+                <th>No Surat</th>
+                <th>Artikel</th>
+                <th>Kondisi</th>
+                <th>Foto</th>
+                <th>Keterangan</th>
+                <th>Dicek Oleh</th>
+                <th>Tanggal</th>
+                {% if bisa_edit %}<th style="text-align:right">Aksi</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td style="font-weight:700">{{ r.no_surat }}</td>
+                <td>
+                    <div>{{ r.nama_artikel }}</div>
+                    {% if r.kode_artikel %}<span class="kode-chip">{{ r.kode_artikel }}</span>{% endif %}
+                </td>
+                <td><span class="badge badge-{{ r.kondisi }}">{{ r.kondisi|upper }}</span></td>
+                <td>
+                    {% if r.foto_path %}
+                    <img src="/check-retur/foto/{{ r.foto_path }}" class="cr-thumb" onclick="openFotoPreview('/check-retur/foto/{{ r.foto_path }}')">
+                    {% else %}
+                    <div class="cr-thumb-empty">{{ icons.i('file', 14) }}</div>
+                    {% endif %}
+                </td>
+                <td><div class="cr-ket" title="{{ r.keterangan or '' }}">{{ r.keterangan or '—' }}</div></td>
+                <td class="text-muted">{{ r.dicek_oleh_nama or '—' }}</td>
+                <td class="text-muted text-sm">{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '—' }}</td>
+                {% if bisa_edit %}
+                <td>
+                    <div class="flex gap-2" style="justify-content:flex-end">
+                        <button class="btn btn-outline btn-xs" onclick="openModal('modalEditCR{{ r.id }}')">{{ icons.i('edit', 12) }} Edit</button>
+                        <form method="POST" action="/check-retur/{{ r.id }}/hapus" style="display:inline" onsubmit="return confirm('Hapus data check retur no surat {{ r.no_surat }}?')">
+                            <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('trash', 12) }} Hapus</button>
+                        </form>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ 8 if bisa_edit else 7 }}" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada data check retur</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Datalist master artikel, dipakai di form input & edit -->
+<datalist id="artikelDatalist">
+    {% for a in artikel_list %}<option value="{{ a.nama }}" data-kode="{{ a.kode }}">{% endfor %}
+</datalist>
+
+<!-- Modal Input Baru -->
+<div class="modal-overlay" id="modalInputCR" onclick="if(event.target===this)closeModal('modalInputCR')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">{{ icons.cr_mark(18) }} Input Check Retur</span>
+            <button class="btn-icon" onclick="closeModal('modalInputCR')">{{ icons.i('x', 16) }}</button>
+        </div>
+        <form method="POST" action="/check-retur/buat" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">No Surat</label>
+                    <input type="text" name="no_surat" required class="form-control" placeholder="contoh: SJ-2026-0001">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nama Artikel</label>
+                        <input type="text" name="nama_artikel" required class="form-control"
+                            list="artikelDatalist" autocomplete="off"
+                            oninput="crAutofillKode(this, 'kodeInput_new')" placeholder="Ketik atau pilih...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Kode Artikel</label>
+                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control" placeholder="Auto / manual">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kondisi</label>
+                    <select name="kondisi" required class="form-select">
+                        <option value="">-- Pilih kondisi --</option>
+                        <option value="ok">OK</option>
+                        <option value="service">Service</option>
+                        <option value="waste">Waste</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Foto <span class="text-muted text-xs">(opsional)</span></label>
+                    <div class="file-drop-mini" onclick="document.getElementById('fotoInput_new').click()" id="fotoLabel_new">
+                        {{ icons.i('upload', 14) }} Klik buat pilih foto
+                    </div>
+                    <input type="file" name="foto" id="fotoInput_new" accept="image/*" style="display:none"
+                        onchange="crShowFilename(this, 'fotoLabel_new')">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Keterangan <span class="text-muted text-xs">(opsional)</span></label>
+                    <textarea name="keterangan" class="form-control" placeholder="Catatan tambahan..."></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Dicek Oleh</label>
+                    <input type="text" class="form-control" value="{{ user.nama }}" disabled style="opacity:.7">
+                    <div class="form-hint">Otomatis dari akun login kamu</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalInputCR')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Preview Foto -->
+<div class="modal-overlay" id="modalFotoPreview" onclick="if(event.target===this)closeModal('modalFotoPreview')">
+    <div class="modal-box foto-preview-box">
+        <div class="modal-header">
+            <span class="modal-title">Preview Foto</span>
+            <button class="btn-icon" onclick="closeModal('modalFotoPreview')">{{ icons.i('x', 16) }}</button>
+        </div>
+        <div class="modal-body">
+            <img id="fotoPreviewImg" src="" alt="preview">
+        </div>
+    </div>
+</div>
+
+{% if bisa_edit %}
+{% for r in rows %}
+<div class="modal-overlay" id="modalEditCR{{ r.id }}" onclick="if(event.target===this)closeModal('modalEditCR{{ r.id }}')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">Edit — {{ r.no_surat }}</span>
+            <button class="btn-icon" onclick="closeModal('modalEditCR{{ r.id }}')">{{ icons.i('x', 16) }}</button>
+        </div>
+        <form method="POST" action="/check-retur/{{ r.id }}/edit" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">No Surat</label>
+                    <input type="text" name="no_surat" value="{{ r.no_surat }}" required class="form-control">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nama Artikel</label>
+                        <input type="text" name="nama_artikel" value="{{ r.nama_artikel }}" required class="form-control"
+                            list="artikelDatalist" autocomplete="off"
+                            oninput="crAutofillKode(this, 'kodeInput_{{ r.id }}')">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Kode Artikel</label>
+                        <input type="text" name="kode_artikel" id="kodeInput_{{ r.id }}" value="{{ r.kode_artikel or '' }}" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kondisi</label>
+                    <select name="kondisi" required class="form-select">
+                        <option value="ok" {% if r.kondisi=='ok' %}selected{% endif %}>OK</option>
+                        <option value="service" {% if r.kondisi=='service' %}selected{% endif %}>Service</option>
+                        <option value="waste" {% if r.kondisi=='waste' %}selected{% endif %}>Waste</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Foto</label>
+                    {% if r.foto_path %}
+                    <div class="flex gap-2 mb-2" style="align-items:center">
+                        <img src="/check-retur/foto/{{ r.foto_path }}" class="cr-thumb">
+                        <label class="text-sm flex gap-2" style="align-items:center;cursor:pointer">
+                            <input type="checkbox" name="hapus_foto"> Hapus foto ini
+                        </label>
+                    </div>
+                    {% endif %}
+                    <div class="file-drop-mini" onclick="document.getElementById('fotoInput_{{ r.id }}').click()" id="fotoLabel_{{ r.id }}">
+                        {{ icons.i('upload', 14) }} {{ 'Ganti foto' if r.foto_path else 'Klik buat pilih foto' }}
+                    </div>
+                    <input type="file" name="foto" id="fotoInput_{{ r.id }}" accept="image/*" style="display:none"
+                        onchange="crShowFilename(this, 'fotoLabel_{{ r.id }}')">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Keterangan</label>
+                    <textarea name="keterangan" class="form-control">{{ r.keterangan or '' }}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditCR{{ r.id }}')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function crAutofillKode(inputEl, kodeElId) {
+    const list = document.getElementById('artikelDatalist');
+    const opt = Array.from(list.options).find(o => o.value === inputEl.value);
+    const kodeEl = document.getElementById(kodeElId);
+    if (opt && kodeEl) kodeEl.value = opt.dataset.kode || '';
+}
+function crShowFilename(inputEl, labelId) {
+    const label = document.getElementById(labelId);
+    if (inputEl.files && inputEl.files[0]) {
+        label.textContent = '📎 ' + inputEl.files[0].name;
+        label.classList.add('has-file');
+    }
+}
+function openFotoPreview(src) {
+    document.getElementById('fotoPreviewImg').src = src;
+    openModal('modalFotoPreview');
+}
+</script>
+{% endblock %}
