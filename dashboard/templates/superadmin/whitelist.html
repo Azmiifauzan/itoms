@@ -19,8 +19,8 @@
 .perm-chip-option:hover{background:var(--bg-hover)}
 .perm-chip-option input{accent-color:var(--primary);flex-shrink:0}
 .perm-chip-option.checked-visual{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:600}
-.superadmin-toggle{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);height:100%;box-sizing:border-box}
-.superadmin-toggle input{accent-color:var(--warning);flex-shrink:0}
+.superadmin-toggle{display:flex;align-items:center;gap:9px;padding:11px 14px;border:1px solid #FDE68A;border-radius:var(--radius-sm);background:var(--warning-bg);cursor:pointer;font-weight:600;font-size:13px;color:var(--warning)}
+.superadmin-toggle input{accent-color:var(--warning);flex-shrink:0;width:16px;height:16px}
 {% endblock %}
 
 {% block content %}
@@ -109,18 +109,15 @@
                                     <input type="text" name="username" value="{{ w.username or '' }}" required class="form-control">
                                 </div>
                             </div>
-                            <div class="grid-2">
-                                <div class="form-group">
-                                    <label class="form-label">Password Baru <span class="text-muted text-xs">(kosongin = gak ganti)</span></label>
-                                    <input type="password" name="password_baru" class="form-control" placeholder="••••••••">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">&nbsp;</label>
-                                    <label class="superadmin-toggle">
-                                        <input type="checkbox" name="is_superadmin" {% if w.is_superadmin %}checked{% endif %}>
-                                        <span>Superadmin</span>
-                                    </label>
-                                </div>
+                            <div class="form-group">
+                                <label class="form-label">Password Baru <span class="text-muted text-xs">(kosongin = gak ganti)</span></label>
+                                <input type="password" name="password_baru" class="form-control" placeholder="••••••••">
+                            </div>
+                            <div class="form-group">
+                                <label class="superadmin-toggle">
+                                    <input type="checkbox" name="is_superadmin" {% if w.is_superadmin %}checked{% endif %}>
+                                    <span>Jadikan Superadmin</span>
+                                </label>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Permissions</label>
@@ -187,18 +184,15 @@
                         <input type="text" name="username" required class="form-control">
                     </div>
                 </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" required class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">&nbsp;</label>
-                        <label class="superadmin-toggle">
-                            <input type="checkbox" name="is_superadmin">
-                            <span>Superadmin</span>
-                        </label>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="superadmin-toggle">
+                        <input type="checkbox" name="is_superadmin">
+                        <span>Jadikan Superadmin</span>
+                    </label>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Permissions</label>

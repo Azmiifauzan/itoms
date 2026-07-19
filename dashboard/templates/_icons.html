@@ -97,3 +97,13 @@
 <text x="7.5" y="23" font-family="Lexend, Inter, sans-serif" font-weight="800" font-size="16" fill="#ffffff" opacity="0.5">C</text>
 <text x="13" y="24" font-family="Lexend, Inter, sans-serif" font-weight="800" font-size="17" fill="#ffffff">R</text>
 </svg>{% endmacro %}
+
+{# Versi garis (outline) dari CR mark — buat dipakai di sidebar/nav biar seragam
+   sama icon garis lainnya (ikut currentColor, bukan warna solid sendiri) #}
+{% macro cr_outline(size=18, cls='') %}<svg class="icon {{ cls }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<rect x="2.5" y="2.5" width="19" height="19" rx="5"/>
+<path d="M7.5 16V8h3.2a2.4 2.4 0 0 1 0 4.8H7.5"/>
+<path d="M10.7 12.8 14 16"/>
+<path d="M14.5 8h2.6a2.2 2.2 0 0 1 0 4.4H14.5V8Z" opacity="0"/>
+<path d="M13.2 16V8h2.8a2.2 2.2 0 0 1 1.6 3.7L19.5 16"/>
+</svg>{% endmacro %}

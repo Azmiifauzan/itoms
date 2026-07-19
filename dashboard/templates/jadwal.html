@@ -9,7 +9,16 @@
 .month-label{font-family:var(--font-display);font-size:15.5px;font-weight:700;min-width:150px;text-align:center;letter-spacing:-.2px}
 .nav-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;text-decoration:none}
 .nav-btn:hover{background:var(--bg-hover)}
-.jadwal-actions{display:flex;gap:8px;flex-wrap:wrap}
+.jadwal-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.dropdown{position:relative}
+.dropdown-menu{display:none;flex-direction:column;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);min-width:190px;z-index:60;padding:6px}
+.dropdown-menu.open{display:flex}
+.dropdown-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:13px;color:var(--text);text-decoration:none;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;transition:background .15s}
+.dropdown-item:hover{background:var(--bg-hover)}
+.dropdown-divider{height:1px;background:var(--border);margin:5px 3px}
+.chev-down{transform:rotate(90deg);transition:transform .15s}
+.dropdown.open .chev-down{transform:rotate(270deg)}
 
 .cal-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--bg);border-bottom:1px solid var(--border)}
@@ -77,14 +86,24 @@
         <a href="/jadwal/?tahun={{ next_tahun }}&bulan={{ next_bulan }}" class="nav-btn">{{ icons.i('chevron-right', 16) }}</a>
     </div>
     <div class="jadwal-actions">
-        <a href="/jadwal/download/excel?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Excel</a>
-        <a href="/jadwal/download/gambar?tahun={{ tahun }}&bulan={{ bulan }}" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Gambar</a>
+        <div class="dropdown" id="fileDropdownWrap">
+            <button class="btn btn-outline btn-sm" onclick="toggleDropdown('fileDropdown', this.parentElement)">
+                {{ icons.i('file', 14) }} File {{ icons.i('chevron-right', 12, 'chev-down') }}
+            </button>
+            <div class="dropdown-menu" id="fileDropdown">
+                <a href="/jadwal/download/excel?tahun={{ tahun }}&bulan={{ bulan }}" class="dropdown-item">{{ icons.i('download', 14) }} Download Excel</a>
+                <a href="/jadwal/download/gambar?tahun={{ tahun }}&bulan={{ bulan }}" class="dropdown-item">{{ icons.i('download', 14) }} Download Gambar</a>
+                {% if can_edit %}
+                <a href="/jadwal/template" class="dropdown-item">{{ icons.i('download', 14) }} Download Template</a>
+                <div class="dropdown-divider"></div>
+                <button type="button" class="dropdown-item" onclick="closeAllDropdowns();openModal('modalUpload')">{{ icons.i('upload', 14) }} Upload Excel</button>
+                {% endif %}
+            </div>
+        </div>
         {% if can_edit %}
-        <a href="/jadwal/template" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Template</a>
-        <button class="btn btn-outline btn-sm" onclick="openModal('modalUpload')">{{ icons.i('upload', 14) }} Upload Excel</button>
         <button class="btn btn-outline btn-sm" onclick="openModal('modalRequest')">{{ icons.i('calendar', 14) }} Request Tanggal</button>
+        <button class="btn btn-outline btn-sm" onclick="openModal('modalTambah')">{{ icons.i('plus', 14) }} Input Manual</button>
         <button class="btn btn-primary btn-sm" onclick="openModal('modalGenerate')">{{ icons.i('zap', 14) }} Generate Jadwal</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modalTambah')">{{ icons.i('plus', 14) }} Input Manual</button>
         {% endif %}
     </div>
 </div>
@@ -336,4 +355,25 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function toggleDropdown(id, wrapEl) {
+    const el = document.getElementById(id);
+    const willOpen = !el.classList.contains('open');
+    closeAllDropdowns();
+    if (willOpen) {
+        el.classList.add('open');
+        wrapEl.classList.add('open');
+    }
+}
+function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+}
+document.addEventListener('click', e => {
+    if (!e.target.closest('.dropdown')) closeAllDropdowns();
+});
+</script>
 {% endblock %}

@@ -176,7 +176,7 @@
         input[type="range"]{accent-color:var(--primary)}
 
         /* ===== Modal ===== */
-        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,12,24,.5);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,12,24,.5);backdrop-filter:blur(4px);z-index:200;align-items:center;align-items:safe center;justify-content:center;padding:20px;overflow-y:auto}
         .modal-overlay.open{display:flex}
         .modal-box{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);animation:modalIn .2s cubic-bezier(.34,1.56,.64,1);max-height:88vh;display:flex;flex-direction:column}
         .modal-box-lg{max-width:560px}
@@ -277,7 +277,7 @@
                 {{ icons.i('calendar') }} Jadwal
             </a>
             <a href="/check-retur/" class="nav-item {% if 'check-retur' in request.path %}active{% endif %}">
-                {{ icons.cr_mark(18) }} Check Retur
+                {{ icons.cr_outline(18) }} Check Retur
             </a>
             <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
                 {{ icons.i('folder') }} File Kita Bersama
@@ -292,7 +292,7 @@
                 {{ icons.i('shield') }} Daftar Piket
             </a>
             <a href="/superadmin/artikel" class="nav-item {% if 'artikel' in request.path %}active{% endif %}">
-                {{ icons.cr_mark(18) }} Master Artikel
+                {{ icons.cr_outline(18) }} Master Artikel
             </a>
             <a href="/superadmin/whitelist" class="nav-item {% if 'whitelist' in request.path %}active{% endif %}">
                 {{ icons.i('list') }} Whitelist Bot
