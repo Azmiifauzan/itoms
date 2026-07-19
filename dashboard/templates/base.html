@@ -184,7 +184,7 @@
         @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
         .modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
         .modal-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-        .modal-body{padding:20px;overflow-y:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain}
+        .modal-body{padding:20px;overflow-y:auto;flex:1 1 0%;min-height:0;overscroll-behavior:contain}
         .modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0}
 
         /* Sidebar overlay mobile */
@@ -441,9 +441,27 @@ function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 }
+function _fitModalBody(overlayEl) {
+    const box = overlayEl.querySelector('.modal-box');
+    if (!box) return;
+    const header = box.querySelector('.modal-header');
+    const footer = box.querySelector('.modal-footer');
+    const body = box.querySelector('.modal-body');
+    if (!body) return;
+    const maxBoxPx = window.innerHeight * 0.88 - 40; // 40 = padding overlay atas+bawah
+    const headerPx = header ? header.offsetHeight : 0;
+    const footerPx = footer ? footer.offsetHeight : 0;
+    const bodyMax = Math.max(maxBoxPx - headerPx - footerPx, 120);
+    body.style.maxHeight = bodyMax + 'px';
+    body.style.overflowY = 'auto';
+}
 function openModal(id) {
-    document.getElementById(id).classList.add('open');
+    const overlay = document.getElementById(id);
+    overlay.classList.add('open');
     document.body.classList.add('modal-open');
+    // dihitung lewat JS langsung (inline style), gak bergantung sama CSS flex
+    // sama sekali -- biar gak ada lagi kemungkinan ketiban rule CSS lain.
+    requestAnimationFrame(() => _fitModalBody(overlay));
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('open');
@@ -451,6 +469,9 @@ function closeModal(id) {
         document.body.classList.remove('modal-open');
     }
 }
+window.addEventListener('resize', () => {
+    document.querySelectorAll('.modal-overlay.open').forEach(_fitModalBody);
+});
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
