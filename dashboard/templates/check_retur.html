@@ -32,6 +32,16 @@
 .file-drop-mini{border:1.5px dashed var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;font-size:12.5px;color:var(--text-muted);cursor:pointer;transition:border-color .15s,background .15s}
 .file-drop-mini:hover{border-color:var(--primary);background:var(--primary-light)}
 .file-drop-mini.has-file{color:var(--primary);border-color:var(--primary);font-weight:600}
+
+.kondisi-group{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kondisi-opt{position:relative}
+.kondisi-opt input{position:absolute;opacity:0;width:1px;height:1px}
+.kondisi-opt label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 6px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text-muted);transition:all .15s;text-align:center}
+.kondisi-opt label:hover{background:var(--bg-hover)}
+.kondisi-opt input:focus-visible + label{outline:2px solid var(--primary);outline-offset:2px}
+.kondisi-opt input:checked + label.k-ok{border-color:var(--success);background:var(--success-bg);color:var(--success)}
+.kondisi-opt input:checked + label.k-service{border-color:var(--warning);background:var(--warning-bg);color:var(--warning)}
+.kondisi-opt input:checked + label.k-waste{border-color:var(--danger);background:var(--danger-bg);color:var(--danger)}
 {% endblock %}
 
 {% block content %}
@@ -136,12 +146,20 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>
-                    <select name="kondisi" required class="form-select">
-                        <option value="">-- Pilih kondisi --</option>
-                        <option value="ok">OK</option>
-                        <option value="service">Service</option>
-                        <option value="waste">Waste</option>
-                    </select>
+                    <div class="kondisi-group">
+                        <div class="kondisi-opt">
+                            <input type="radio" name="kondisi" value="ok" id="k_ok_new" required>
+                            <label for="k_ok_new" class="k-ok">{{ icons.i('check-circle', 18) }} OK</label>
+                        </div>
+                        <div class="kondisi-opt">
+                            <input type="radio" name="kondisi" value="service" id="k_service_new" required>
+                            <label for="k_service_new" class="k-service">{{ icons.i('refresh', 18) }} Service</label>
+                        </div>
+                        <div class="kondisi-opt">
+                            <input type="radio" name="kondisi" value="waste" id="k_waste_new" required>
+                            <label for="k_waste_new" class="k-waste">{{ icons.i('trash', 18) }} Waste</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Foto <span class="text-muted text-xs">(opsional)</span></label>
@@ -210,11 +228,20 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>
-                    <select name="kondisi" required class="form-select">
-                        <option value="ok" {% if r.kondisi=='ok' %}selected{% endif %}>OK</option>
-                        <option value="service" {% if r.kondisi=='service' %}selected{% endif %}>Service</option>
-                        <option value="waste" {% if r.kondisi=='waste' %}selected{% endif %}>Waste</option>
-                    </select>
+                    <div class="kondisi-group">
+                        <div class="kondisi-opt">
+                            <input type="radio" name="kondisi" value="ok" id="k_ok_{{ r.id }}" required {% if r.kondisi=='ok' %}checked{% endif %}>
+                            <label for="k_ok_{{ r.id }}" class="k-ok">{{ icons.i('check-circle', 18) }} OK</label>
+                        </div>
+                        <div class="kondisi-opt">
+                            <input type="radio" name="kondisi" value="service" id="k_service_{{ r.id }}" required {% if r.kondisi=='service' %}checked{% endif %}>
+                            <label for="k_service_{{ r.id }}" class="k-service">{{ icons.i('refresh', 18) }} Service</label>
+                        </div>
+                        <div class="kondisi-opt">
+                            <input type="radio" name="kondisi" value="waste" id="k_waste_{{ r.id }}" required {% if r.kondisi=='waste' %}checked{% endif %}>
+                            <label for="k_waste_{{ r.id }}" class="k-waste">{{ icons.i('trash', 18) }} Waste</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Foto</label>
