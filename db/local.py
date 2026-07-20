@@ -172,7 +172,7 @@ def init_db():
     );
     CREATE TABLE IF NOT EXISTS artikel (
         id SERIAL PRIMARY KEY,
-        kode TEXT NOT NULL UNIQUE,
+        kode INTEGER NOT NULL UNIQUE,
         nama TEXT NOT NULL UNIQUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -180,7 +180,8 @@ def init_db():
         id SERIAL PRIMARY KEY,
         no_surat TEXT NOT NULL,
         nama_artikel TEXT NOT NULL,
-        kode_artikel TEXT,
+        kode_artikel INTEGER,
+        serial_number TEXT,
         kondisi TEXT NOT NULL CHECK (kondisi IN ('waste','ok','service')),
         foto_path TEXT,
         keterangan TEXT,
@@ -192,6 +193,21 @@ def init_db():
     with get_conn() as conn:
         conn.execute(ddl)
         conn.commit()
+
+        # Migrasi jaga-jaga: kalau tabel `artikel`/`check_retur` udah kebuat
+        # duluan pas `kode_artikel` masih TEXT, dan/atau kolom `serial_number`
+        # belum ada. Aman dijalanin berkali-kali (idempotent).
+        migrasi = [
+            "ALTER TABLE artikel ALTER COLUMN kode TYPE INTEGER USING kode::integer",
+            "ALTER TABLE check_retur ALTER COLUMN kode_artikel TYPE INTEGER USING NULLIF(kode_artikel, '')::integer",
+            "ALTER TABLE check_retur ADD COLUMN IF NOT EXISTS serial_number TEXT",
+        ]
+        for stmt in migrasi:
+            try:
+                conn.execute(stmt)
+                conn.commit()
+            except Exception:
+                conn.rollback()  # kolomnya udah sesuai / gak perlu diubah
 
 
 # ──────────────────────────────────────────

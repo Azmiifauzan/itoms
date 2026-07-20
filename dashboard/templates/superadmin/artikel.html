@@ -71,7 +71,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kode Artikel</label>
-                    <input type="text" name="kode" required class="form-control" placeholder="contoh: ART-0001" style="text-transform:uppercase">
+                    <input type="number" name="kode" required class="form-control" placeholder="contoh: 1001" min="0" step="1">
                     <div class="form-hint">Kode ini yang bakal auto-fill di form Check Retur pas nama artikelnya dipilih</div>
                 </div>
             </div>
@@ -99,7 +99,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kode Artikel</label>
-                    <input type="text" name="kode" value="{{ a.kode }}" required class="form-control" style="text-transform:uppercase">
+                    <input type="number" name="kode" value="{{ a.kode }}" required class="form-control" min="0" step="1">
                 </div>
             </div>
             <div class="modal-footer">

@@ -280,14 +280,14 @@ def artikel():
 @login_required
 @superadmin_required
 def tambah_artikel():
-    kode = request.form.get("kode", "").strip().upper()
+    kode_str = request.form.get("kode", "").strip()
     nama = request.form.get("nama", "").strip()
-    if kode and nama:
+    if kode_str.isdigit() and nama:
         with get_conn() as conn:
             try:
                 conn.execute(
                     "INSERT INTO artikel (kode, nama) VALUES (?, ?)",
-                    (kode, nama)
+                    (int(kode_str), nama)
                 )
                 conn.commit()
             except Exception:
@@ -299,14 +299,14 @@ def tambah_artikel():
 @login_required
 @superadmin_required
 def edit_artikel(artikel_id):
-    kode = request.form.get("kode", "").strip().upper()
+    kode_str = request.form.get("kode", "").strip()
     nama = request.form.get("nama", "").strip()
-    if kode and nama:
+    if kode_str.isdigit() and nama:
         with get_conn() as conn:
             try:
                 conn.execute(
                     "UPDATE artikel SET kode = ?, nama = ? WHERE id = ?",
-                    (kode, nama, artikel_id)
+                    (int(kode_str), nama, artikel_id)
                 )
                 conn.commit()
             except Exception:

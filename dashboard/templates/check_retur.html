@@ -10,7 +10,7 @@
 .cr-search .icon{color:var(--text-muted);flex-shrink:0}
 
 .table-scroll{overflow-x:auto;border-radius:var(--radius)}
-.cr-table{width:100%;border-collapse:collapse;min-width:920px}
+.cr-table{width:100%;border-collapse:collapse;min-width:1040px}
 .cr-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
 .cr-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
 .cr-table tr:last-child td{border-bottom:none}
@@ -53,7 +53,7 @@
     <div class="flex gap-3" style="flex-wrap:wrap;flex:1;justify-content:flex-end">
         <form class="cr-search" method="GET" action="/check-retur/">
             {{ icons.i('search', 15) }}
-            <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / artikel...">
+            <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / artikel / serial...">
         </form>
         <button class="btn btn-primary" onclick="openModal('modalInputCR')">{{ icons.i('plus', 14) }} Input Baru</button>
     </div>
@@ -66,6 +66,7 @@
             <tr>
                 <th>No Surat</th>
                 <th>Artikel</th>
+                <th>Serial Number</th>
                 <th>Kondisi</th>
                 <th>Foto</th>
                 <th>Keterangan</th>
@@ -82,6 +83,7 @@
                     <div>{{ r.nama_artikel }}</div>
                     {% if r.kode_artikel %}<span class="kode-chip">{{ r.kode_artikel }}</span>{% endif %}
                 </td>
+                <td class="text-muted">{{ r.serial_number or '—' }}</td>
                 <td><span class="badge badge-{{ r.kondisi }}">{{ r.kondisi|upper }}</span></td>
                 <td>
                     {% if r.foto_path %}
@@ -106,7 +108,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="{{ 8 if bisa_edit else 7 }}" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada data check retur</td>
+                <td colspan="{{ 9 if bisa_edit else 8 }}" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada data check retur</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -130,19 +132,24 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">No Surat</label>
-                    <input type="text" name="no_surat" required class="form-control">
+                    <input type="text" name="no_surat" required class="form-control" placeholder="contoh: SJ-2026-0001">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Nama Artikel</label>
                         <input type="text" name="nama_artikel" required class="form-control"
                             list="artikelDatalist" autocomplete="off"
-                            oninput="crAutofillKode(this, 'kodeInput_new')">
+                            oninput="crAutofillKode(this, 'kodeInput_new')" placeholder="Ketik atau pilih...">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Kode Artikel</label>
-                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control">
+                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control" placeholder="Otomatis dari Nama Artikel" readonly style="background:var(--bg-hover);cursor:not-allowed">
+                        <div class="form-hint">Terkunci — kepilih otomatis pas Nama Artikel dipilih dari daftar</div>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Serial Number <span class="text-muted text-xs">(opsional)</span></label>
+                    <input type="text" name="serial_number" class="form-control" placeholder="Serial number barang...">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>
@@ -175,7 +182,8 @@
                 </div>
                 <div class="form-group" style="margin-bottom:0">
                     <label class="form-label">Dicek Oleh</label>
-                    <input type="text" class="form-control" value="{{ user.nama }}" disabled style="opacity:.7">                    
+                    <input type="text" class="form-control" value="{{ user.nama }}" disabled style="opacity:.7">
+                    <div class="form-hint">Otomatis dari akun login kamu</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -222,8 +230,12 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Kode Artikel</label>
-                        <input type="text" name="kode_artikel" id="kodeInput_{{ r.id }}" value="{{ r.kode_artikel or '' }}" class="form-control">
+                        <input type="text" name="kode_artikel" id="kodeInput_{{ r.id }}" value="{{ r.kode_artikel or '' }}" class="form-control" readonly style="background:var(--bg-hover);cursor:not-allowed">
                     </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Serial Number <span class="text-muted text-xs">(opsional)</span></label>
+                    <input type="text" name="serial_number" value="{{ r.serial_number or '' }}" class="form-control">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>

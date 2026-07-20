@@ -83,9 +83,10 @@ def index():
                 SELECT cr.*, w.nama as dicek_oleh_nama
                 FROM check_retur cr
                 LEFT JOIN whitelist w ON cr.dicek_oleh = w.user_id
-                WHERE cr.no_surat ILIKE ? OR cr.nama_artikel ILIKE ? OR cr.kode_artikel ILIKE ?
+                WHERE cr.no_surat ILIKE ? OR cr.nama_artikel ILIKE ?
+                   OR cr.kode_artikel::text ILIKE ? OR cr.serial_number ILIKE ?
                 ORDER BY cr.created_at DESC
-            """, (like, like, like)).fetchall()
+            """, (like, like, like, like)).fetchall()
         else:
             rows = conn.execute("""
                 SELECT cr.*, w.nama as dicek_oleh_nama
@@ -111,7 +112,8 @@ def buat():
     user = get_current_user()
     no_surat = request.form.get("no_surat", "").strip()
     nama_artikel = request.form.get("nama_artikel", "").strip()
-    kode_artikel = request.form.get("kode_artikel", "").strip()
+    kode_artikel_str = request.form.get("kode_artikel", "").strip()
+    serial_number = request.form.get("serial_number", "").strip()
     kondisi = request.form.get("kondisi", "").strip()
     keterangan = request.form.get("keterangan", "").strip()
     foto = request.files.get("foto")
@@ -119,14 +121,15 @@ def buat():
     if not (no_surat and nama_artikel and kondisi in KONDISI_VALID):
         return redirect(url_for("check_retur.index"))
 
+    kode_artikel = int(kode_artikel_str) if kode_artikel_str.isdigit() else None
     foto_path = _simpan_foto(foto)
 
     with get_conn() as conn:
         conn.execute("""
             INSERT INTO check_retur
-                (no_surat, nama_artikel, kode_artikel, kondisi, foto_path, keterangan, dicek_oleh)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (no_surat, nama_artikel, kode_artikel or None, kondisi,
+                (no_surat, nama_artikel, kode_artikel, serial_number, kondisi, foto_path, keterangan, dicek_oleh)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (no_surat, nama_artikel, kode_artikel, serial_number or None, kondisi,
               foto_path, keterangan or None, user["user_id"]))
         conn.commit()
 
@@ -141,7 +144,8 @@ def edit(cr_id):
 
     no_surat = request.form.get("no_surat", "").strip()
     nama_artikel = request.form.get("nama_artikel", "").strip()
-    kode_artikel = request.form.get("kode_artikel", "").strip()
+    kode_artikel_str = request.form.get("kode_artikel", "").strip()
+    serial_number = request.form.get("serial_number", "").strip()
     kondisi = request.form.get("kondisi", "").strip()
     keterangan = request.form.get("keterangan", "").strip()
     hapus_foto_lama = request.form.get("hapus_foto") == "on"
@@ -149,6 +153,8 @@ def edit(cr_id):
 
     if not (no_surat and nama_artikel and kondisi in KONDISI_VALID):
         return redirect(url_for("check_retur.index"))
+
+    kode_artikel = int(kode_artikel_str) if kode_artikel_str.isdigit() else None
 
     with get_conn() as conn:
         row = conn.execute("SELECT foto_path FROM check_retur WHERE id = ?", (cr_id,)).fetchone()
@@ -166,10 +172,10 @@ def edit(cr_id):
 
         conn.execute("""
             UPDATE check_retur SET
-                no_surat = ?, nama_artikel = ?, kode_artikel = ?, kondisi = ?,
+                no_surat = ?, nama_artikel = ?, kode_artikel = ?, serial_number = ?, kondisi = ?,
                 foto_path = ?, keterangan = ?, updated_at = ?
             WHERE id = ?
-        """, (no_surat, nama_artikel, kode_artikel or None, kondisi,
+        """, (no_surat, nama_artikel, kode_artikel, serial_number or None, kondisi,
               foto_path, keterangan or None, _now_wib_str(), cr_id))
         conn.commit()
 
