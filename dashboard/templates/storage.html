@@ -220,7 +220,7 @@
         {% endif %}
 
         {% for f in folders %}
-        <tr class="selectable-row" data-name="{{ f.name }}" data-type="folder" data-download="/storage/download-folder?path={{ f.rel_path }}">
+        <tr class="selectable-row" data-name="{{ f.name }}" data-type="folder" data-download="/storage/download-folder?path={{ f.rel_path }}" data-perm-mode="{{ f.perm_mode }}">
             <td><input type="checkbox" class="row-check item-check" onclick="event.stopPropagation()" onchange="onCheckChange(this)"></td>
             <td>
                 <a href="/storage/?path={{ f.rel_path }}" class="file-name-link">
@@ -248,6 +248,7 @@
             <td>
                 <div class="row-actions">
                     <a href="/storage/download-folder?path={{ f.rel_path }}" class="btn btn-outline btn-xs" title="Download folder sebagai .zip">{{ icon('download-zip', 14) }}</a>
+                    <button class="btn btn-outline btn-xs" onclick="openPrivacy('{{ rel_path }}', '{{ f.name }}', true, '{{ f.perm_mode }}')" title="Atur privasi">{{ icon('lock', 14) }}</button>
                     <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')" title="Ganti nama">{{ icon('edit', 14) }}</button>
                     <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', true)" title="Hapus">{{ icon('trash', 14) }}</button>
                 </div>
@@ -257,13 +258,15 @@
 
         {% set ns = namespace(idx=0) %}
         {% for f in files %}
-        <tr class="selectable-row" data-name="{{ f.name }}" data-type="file" data-download="/storage/download?path={{ f.rel_path }}">
+        <tr class="selectable-row" data-name="{{ f.name }}" data-type="file" data-download="/storage/download?path={{ f.rel_path }}" data-perm-mode="{{ f.perm_mode }}">
             <td><input type="checkbox" class="row-check item-check" onclick="event.stopPropagation()" onchange="onCheckChange(this)"></td>
             <td>
                 {% if f.is_image %}
                 <span class="file-name-link clickable" onclick="openLightbox({{ ns.idx }})">
                     <img class="thumb" src="/storage/raw?path={{ f.rel_path }}&thumb=1" alt="{{ f.name }}" loading="lazy">
                     {{ f.name }}
+                    {% if f.perm_mode == 'private' %}<span class="privacy-badge private">{{ icon('eye-off', 10) }} Privat</span>
+                    {% elif f.perm_mode == 'password' %}<span class="privacy-badge password">{{ icon('lock', 10) }} Terkunci</span>{% endif %}
                 </span>
                 {% set ns.idx = ns.idx + 1 %}
                 {% elif f.is_video %}
@@ -273,11 +276,15 @@
                         <span class="thumb-play">{{ icon('play', 14) }}</span>
                     </span>
                     {{ f.name }}
+                    {% if f.perm_mode == 'private' %}<span class="privacy-badge private">{{ icon('eye-off', 10) }} Privat</span>
+                    {% elif f.perm_mode == 'password' %}<span class="privacy-badge password">{{ icon('lock', 10) }} Terkunci</span>{% endif %}
                 </span>
                 {% set ns.idx = ns.idx + 1 %}
                 {% else %}
                 <span class="file-name-link">
                     <span class="file-icon ic-file">{{ icon('file') }}</span> {{ f.name }}
+                    {% if f.perm_mode == 'private' %}<span class="privacy-badge private">{{ icon('eye-off', 10) }} Privat</span>
+                    {% elif f.perm_mode == 'password' %}<span class="privacy-badge password">{{ icon('lock', 10) }} Terkunci</span>{% endif %}
                 </span>
                 {% endif %}
             </td>
@@ -297,6 +304,7 @@
             <td>
                 <div class="row-actions">
                     <a href="/storage/download?path={{ f.rel_path }}" class="btn btn-outline btn-xs" title="Download">{{ icon('download', 14) }}</a>
+                    <button class="btn btn-outline btn-xs" onclick="openPrivacy('{{ rel_path }}', '{{ f.name }}', false, '{{ f.perm_mode }}')" title="Atur privasi">{{ icon('lock', 14) }}</button>
                     <button class="btn btn-outline btn-xs" onclick="openRename('{{ rel_path }}', '{{ f.name }}')" title="Ganti nama">{{ icon('edit', 14) }}</button>
                     <button class="btn btn-danger-soft btn-xs" onclick="openDelete('{{ rel_path }}', '{{ f.name }}', false)" title="Hapus">{{ icon('trash', 14) }}</button>
                 </div>
@@ -388,6 +396,48 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modalRename')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Atur Privasi (dipakai bareng buat file & folder yang udah ada) -->
+<div class="modal-overlay" id="modalPrivacy" onclick="if(event.target===this)closeModal('modalPrivacy')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title" style="display:flex;align-items:center;gap:8px">{{ icon('lock', 16) }} Atur Privasi</span>
+            <button class="btn-icon" onclick="closeModal('modalPrivacy')">{{ icon('x', 15) }}</button>
+        </div>
+        <form method="POST" action="/storage/set-privacy" id="formPrivacy">
+            <input type="hidden" name="path" id="privacyPath">
+            <input type="hidden" name="target_name" id="privacyTargetName">
+            <div class="modal-body">
+                <div class="mb-3" id="privacyItemName" style="font-weight:600;font-size:13.5px"></div>
+                <div class="privacy-options" id="privacyOptionsGroup">
+                    <label class="privacy-option" data-value="public">
+                        <input type="radio" name="mode" value="public" onchange="onPrivacyEditChange(this)">
+                        {{ icon('globe', 16) }}
+                        <div class="privacy-option-title">Publik</div>
+                    </label>
+                    <label class="privacy-option" data-value="private">
+                        <input type="radio" name="mode" value="private" onchange="onPrivacyEditChange(this)">
+                        {{ icon('eye-off', 16) }}
+                        <div class="privacy-option-title">Privat</div>
+                    </label>
+                    <label class="privacy-option" data-value="password">
+                        <input type="radio" name="mode" value="password" onchange="onPrivacyEditChange(this)">
+                        {{ icon('lock', 16) }}
+                        <div class="privacy-option-title">Password</div>
+                    </label>
+                </div>
+                <div class="privacy-password-field" id="privacyEditPasswordField">
+                    <input type="password" name="privasi_password" class="form-control" placeholder="Password baru" id="privacyEditPasswordInput">
+                    <div class="form-hint">Password lama gak disimpan balik — wajib diisi ulang tiap kamu simpan mode Password.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalPrivacy')">Batal</button>
                 <button type="submit" class="btn btn-primary">Simpan</button>
             </div>
         </form>
@@ -568,11 +618,13 @@ function buildSingleMenuItems(row) {
     const name = row.dataset.name;
     const type = row.dataset.type;
     const downloadUrl = row.dataset.download;
+    const permMode = row.dataset.permMode || 'public';
     const items = [];
     if (type === 'folder') {
         items.push({ label: 'Buka', icon: 'folder', action: () => row.querySelector('a').click() });
     }
     items.push({ label: type === 'folder' ? 'Download (.zip)' : 'Download', icon: 'download', action: () => window.location.href = downloadUrl });
+    items.push({ label: 'Atur Privasi', icon: 'lock', action: () => openPrivacy(CURRENT_REL_PATH, name, type === 'folder', permMode) });
     items.push({ label: 'Ganti Nama', icon: 'edit', action: () => openRename(CURRENT_REL_PATH, name) });
     items.push({ sep: true });
     items.push({ label: 'Hapus', icon: 'trash', danger: true, action: () => openDelete(CURRENT_REL_PATH, name, type === 'folder') });
@@ -623,6 +675,7 @@ const ICONS = {
     'download-zip': '{{ icon("download-zip", 15) | e }}',
     edit: '{{ icon("edit", 15) | e }}',
     trash: '{{ icon("trash", 15) | e }}',
+    lock: '{{ icon("lock", 15) | e }}',
 };
 
 // ── Dropdown menu Upload (File / Folder) ──
@@ -719,6 +772,51 @@ function onPrivasiChange(input) {
     input.closest('.privacy-option').classList.add('checked');
     const pwField = document.getElementById('privasiPasswordField');
     const pwInput = document.getElementById('privasiPasswordInput');
+    if (input.value === 'password') {
+        pwField.classList.add('show');
+        pwInput.required = true;
+    } else {
+        pwField.classList.remove('show');
+        pwInput.required = false;
+    }
+}
+
+// ── Atur privasi item yang udah ada (file/folder) ──
+function openPrivacy(path, targetName, isFolder, currentMode) {
+    document.getElementById('privacyPath').value = path;
+    document.getElementById('privacyTargetName').value = targetName;
+    document.getElementById('privacyItemName').textContent =
+        (isFolder ? 'Folder: ' : 'File: ') + targetName;
+
+    document.querySelectorAll('#privacyOptionsGroup .privacy-option').forEach(el => el.classList.remove('checked'));
+    document.querySelectorAll('#privacyOptionsGroup input[name="mode"]').forEach(r => r.checked = false);
+
+    const mode = currentMode || 'public';
+    const target = document.querySelector(`#privacyOptionsGroup input[value="${mode}"]`);
+    if (target) {
+        target.checked = true;
+        target.closest('.privacy-option').classList.add('checked');
+    }
+
+    const pwField = document.getElementById('privacyEditPasswordField');
+    const pwInput = document.getElementById('privacyEditPasswordInput');
+    pwInput.value = '';
+    if (mode === 'password') {
+        pwField.classList.add('show');
+        pwInput.required = true;
+    } else {
+        pwField.classList.remove('show');
+        pwInput.required = false;
+    }
+
+    openModal('modalPrivacy');
+}
+
+function onPrivacyEditChange(input) {
+    document.querySelectorAll('#privacyOptionsGroup .privacy-option').forEach(el => el.classList.remove('checked'));
+    input.closest('.privacy-option').classList.add('checked');
+    const pwField = document.getElementById('privacyEditPasswordField');
+    const pwInput = document.getElementById('privacyEditPasswordInput');
     if (input.value === 'password') {
         pwField.classList.add('show');
         pwInput.required = true;
