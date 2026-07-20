@@ -26,17 +26,6 @@
     </div>
 
     <div class="card section-card">
-        <div class="section-card-title">{{ icons.i('user', 16) }} Edit Nama</div>
-        <form method="POST" action="/dashboard/profile/edit-nama">
-            <div class="form-group">
-                <label class="form-label">Nama Lengkap</label>
-                <input type="text" name="nama" value="{{ user.nama }}" required class="form-control">
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm">{{ icons.i('check', 14) }} Simpan</button>
-        </form>
-    </div>
-
-    <div class="card section-card">
         <div class="section-card-title">{{ icons.i('lock', 16) }} Ganti Password</div>
         <form method="POST" action="/dashboard/profile/ganti-password">
             <div class="form-group">

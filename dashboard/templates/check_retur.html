@@ -132,24 +132,24 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">No Surat</label>
-                    <input type="text" name="no_surat" required class="form-control" placeholder="contoh: SJ-2026-0001">
+                    <input type="text" name="no_surat" required class="form-control">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Nama Artikel</label>
                         <input type="text" name="nama_artikel" required class="form-control"
                             list="artikelDatalist" autocomplete="off"
-                            oninput="crAutofillKode(this, 'kodeInput_new')" placeholder="Ketik atau pilih...">
+                            oninput="crAutofillKode(this, 'kodeInput_new')">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Kode Artikel</label>
-                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control" placeholder="Otomatis dari Nama Artikel" readonly style="background:var(--bg-hover);cursor:not-allowed">
+                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control"  readonly style="background:var(--bg-hover);cursor:not-allowed">
                         <div class="form-hint">Terkunci — kepilih otomatis pas Nama Artikel dipilih dari daftar</div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Serial Number <span class="text-muted text-xs">(opsional)</span></label>
-                    <input type="text" name="serial_number" class="form-control" placeholder="Serial number barang...">
+                    <input type="text" name="serial_number" class="form-control" >
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>
@@ -178,7 +178,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Keterangan <span class="text-muted text-xs">(opsional)</span></label>
-                    <textarea name="keterangan" class="form-control" placeholder="Catatan tambahan..."></textarea>
+                    <textarea name="keterangan" class="form-control"></textarea>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
                     <label class="form-label">Dicek Oleh</label>
