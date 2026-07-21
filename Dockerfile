@@ -1,10 +1,11 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
 # Dependency sistem buat WeasyPrint (generate PDF Berita Acara).
-# Tanpa ini, `pip install weasyprint` bakal jalan tapi importnya bakal error
-# pas runtime (libpango/libcairo gak ketemu).
+# Base image dikunci ke "bookworm" (bukan cuma "slim") biar nama paket di
+# bawah ini gak tiba-tiba berubah kalau tag "slim" pindah ke versi Debian
+# yang lebih baru di kemudian hari.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
