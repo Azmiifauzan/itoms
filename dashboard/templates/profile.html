@@ -39,5 +39,29 @@
             <button type="submit" class="btn btn-primary btn-sm">{{ icons.i('key', 14) }} Ganti Password</button>
         </form>
     </div>
+
+    <div class="card section-card">
+        <div class="section-card-title">{{ icons.cr_outline(16) }} Tanda Tangan Digital</div>
+        <div class="text-muted text-sm mb-3">Dipakai otomatis tiap kamu bikin Berita Acara (sebagai Support{% if user.is_manager_it %} & Manager IT{% endif %}) — upload sekali aja, gak perlu diulang tiap kali.</div>
+
+        {% if user.signature_path %}
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;background:var(--bg-hover);display:inline-block">
+            <img src="/dashboard/profile/ttd-preview" alt="Tanda tangan" style="max-height:70px;display:block">
+        </div>
+        <div class="flex gap-2 mb-3">
+            <form method="POST" action="/dashboard/profile/hapus-ttd" onsubmit="return confirm('Hapus tanda tangan tersimpan?')">
+                <button type="submit" class="btn btn-danger-soft btn-sm">{{ icons.i('trash', 14) }} Hapus</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/dashboard/profile/upload-ttd" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">{{ 'Ganti dengan foto baru' if user.signature_path else 'Upload foto tanda tangan' }} <span class="text-muted text-xs">(PNG/JPG, background putih/transparan lebih rapi)</span></label>
+                <input type="file" name="signature" accept="image/png,image/jpeg" required class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">{{ icons.i('upload', 14) }} Simpan Tanda Tangan</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

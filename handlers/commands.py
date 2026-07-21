@@ -1,3 +1,8 @@
+"""
+handlers/commands.py
+Semua command handler untuk bot Telegram.
+"""
+
 import subprocess
 import logging
 from functools import wraps
@@ -8,14 +13,19 @@ from db.hris import get_employee_by_noabsen
 from db.pos import create_pos_user, is_user_exists
 from db.connections import test_all_connections
 from db.local import (is_allowed, add_user, remove_user, list_users,
-                      simpan_komplain, get_komplain_by_message,
-                      get_komplain_terakhir, simpan_response)
+                      simpan_komplain, get_komplain_by_message, simpan_response,
+                      track_group, get_komplain_keywords, get_auto_reply_keywords,
+                      simpan_live_chat)
 
 
 logger = logging.getLogger(__name__)
 
 
-def restricted(func):    
+# ──────────────────────────────────────────
+# Decorator: cek whitelist dari SQLite
+# ──────────────────────────────────────────
+def restricted(func):
+    """Tolak user yang tidak ada di whitelist SQLite."""
     @wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
@@ -36,7 +46,7 @@ def admin_only(func):
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         if user_id not in Config.ADMIN_USER_IDS:
-            await update.message.reply_text("Mau ngapain bwang.")
+            await update.message.reply_text("⛔ Command ini hanya untuk admin.")
             return
         return await func(update, ctx)
     return wrapper
@@ -50,8 +60,19 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     is_admin = user_id in Config.ADMIN_USER_IDS
 
     text = (
-        "<b>Hallo Brok</b>"
+        "👋 <b>Bot POS</b>\n\n"
+        "<b>Command tersedia:</b>\n"
+        "• /daftar &lt;noabsen&gt; — Buat user POS dari data HRIS\n"
+        "• /status — Cek koneksi semua database\n"
+        "• /myid — Lihat Telegram User ID kamu\n"
     )
+    if is_admin:
+        text += (
+            "\n<b>Command admin:</b>\n"
+            "• /adduser &lt;user_id&gt; &lt;nama&gt; — Tambah user ke whitelist\n"
+            "• /removeuser &lt;user_id&gt; — Hapus user dari whitelist\n"
+            "• /listuser — Lihat semua user di whitelist\n"
+        )
     await update.message.reply_text(text, parse_mode="HTML")
 
 
@@ -61,7 +82,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_myid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_text(
-        f"Info akun lu nih brok:\n"
+        f"ℹ️ Info akun kamu:\n"
         f"• <b>User ID:</b> <code>{user.id}</code>\n"
         f"• <b>Username:</b> @{user.username or '-'}\n"
         f"• <b>Nama:</b> {user.full_name}",
@@ -76,7 +97,7 @@ async def cmd_myid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_daftar(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not ctx.args:
         await update.message.reply_text(
-            "Format: <code>/daftar &lt;noabsen&gt;</code>\nContoh: <code>/daftar 12345</code>",
+            "⚠️ Format: <code>/daftar &lt;noabsen&gt;</code>\nContoh: <code>/daftar 12345</code>",
             parse_mode="HTML",
         )
         return
@@ -107,7 +128,7 @@ async def cmd_daftar(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         already, reason = is_user_exists(no_absen)
         if already:
             await msg.edit_text(
-            f"Udah di daftarin <b>{full_name}</b>:\n{reason}",
+            f"⚠️ Tidak bisa daftarkan <b>{full_name}</b>:\n{reason}",
             parse_mode="HTML",
             )
             return
@@ -318,9 +339,16 @@ async def grup_listener(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     logger.info(f"[REKAP DEBUG] Pesan masuk dari {user.full_name if user else '?'} di {grup_nama}: {text[:50]}")
 
-    # 1. Deteksi komplain
-    keywords = ["KODE TOKO", "NAMA TOKO", "PROBLEM"]
-    is_komplain = all(k in text.upper() for k in keywords)
+    # 0. Catat/update grup ini (biar keliatan di menu Bot > Grup)
+    try:
+        track_group(chat_id, grup_nama)
+    except Exception as e:
+        logger.error(f"[BOT] Gagal track_group: {e}")
+
+    # 1. Deteksi komplain — keyword sekarang diambil dari database (bisa diatur di dashboard),
+    #    bukan hardcode lagi. Kalau tabel keyword kosong, JANGAN anggap semua pesan komplain.
+    keywords = get_komplain_keywords()
+    is_komplain = bool(keywords) and all(k.upper() in text.upper() for k in keywords)
 
     if is_komplain:
         try:
@@ -334,34 +362,45 @@ async def grup_listener(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             logger.info(f"[REKAP] Komplain baru di {grup_nama}")
         except Exception as e:
             logger.error(f"[REKAP] Gagal simpan komplain: {e}")
+
+        # Auto-reply — kalau isi komplain ini mengandung salah satu keyword auto-reply
+        # yang diatur di dashboard, bot langsung bales otomatis.
+        try:
+            for ar in get_auto_reply_keywords():
+                if ar["keyword"].upper() in text.upper():
+                    await msg.reply_text(ar["balasan"])
+                    logger.info(f"[AUTO-REPLY] Trigger '{ar['keyword']}' di {grup_nama}")
+                    break
+        except Exception as e:
+            logger.error(f"[AUTO-REPLY] Gagal kirim auto-reply: {e}")
+
         return
 
     # 2. Cek whitelist
     if not user:
-        logger.info(f"[REKAP DEBUG] Skip: user None")
+        logger.info("[REKAP DEBUG] Skip: user None")
         return
-    
+
     allowed = is_allowed(user.id)
     logger.info(f"[REKAP DEBUG] User {user.full_name} (id={user.id}) whitelist={allowed}")
-    
+
     if not allowed:
         return
 
-    # 3. Cari komplain
-    komplain = None
-    if msg.reply_to_message:
-        komplain = get_komplain_by_message(
-            message_id=msg.reply_to_message.message_id,
-            chat_id=chat_id,
-        )
-        logger.info(f"[REKAP DEBUG] Reply ke message_id={msg.reply_to_message.message_id}, komplain={komplain}")
+    # 3. WAJIB reply spesifik ke pesan komplain — gak ada lagi fallback "komplain terakhir"
+    #    (itu penyebab balasan suka nyambung ke komplain yang salah kalau ada 2 komplain numpuk).
+    if not msg.reply_to_message:
+        logger.info("[REKAP DEBUG] Bukan reply ke pesan manapun, diabaikan")
+        return
+
+    komplain = get_komplain_by_message(
+        message_id=msg.reply_to_message.message_id,
+        chat_id=chat_id,
+    )
+    logger.info(f"[REKAP DEBUG] Reply ke message_id={msg.reply_to_message.message_id}, komplain={komplain}")
 
     if not komplain:
-        komplain = get_komplain_terakhir(chat_id)
-        logger.info(f"[REKAP DEBUG] Komplain terakhir di chat={chat_id}: {komplain}")
-
-    if not komplain:
-        logger.info(f"[REKAP DEBUG] Tidak ada komplain relevan, skip")
+        logger.info("[REKAP DEBUG] Reply bukan ke pesan komplain, diabaikan")
         return
 
     try:
@@ -376,3 +415,28 @@ async def grup_listener(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         logger.info(f"[REKAP] Response dari {user.full_name} untuk komplain id={komplain['id']}")
     except Exception as e:
         logger.error(f"[REKAP] Gagal simpan response: {e}")
+
+
+async def live_chat_listener(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """DM 1-on-1 dari orang yang BUKAN whitelist (misal kasir) -> masuk Live Chat.
+    Kalau pengirimnya whitelist (staff internal), biarin command handler lain yang proses,
+    jangan dianggap live chat."""
+    msg = update.message
+    if not msg or not msg.text:
+        return
+    user = msg.from_user
+    if not user:
+        return
+    if is_allowed(user.id):
+        return
+
+    try:
+        simpan_live_chat(
+            telegram_user_id=user.id,
+            nama_pengirim=user.full_name,
+            arah="masuk",
+            isi_pesan=msg.text,
+        )
+        logger.info(f"[LIVE CHAT] Pesan masuk dari {user.full_name} ({user.id})")
+    except Exception as e:
+        logger.error(f"[LIVE CHAT] Gagal simpan pesan: {e}")

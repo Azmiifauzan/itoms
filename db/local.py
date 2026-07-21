@@ -1,30 +1,9 @@
-"""
-db/local.py
-Koneksi PostgreSQL buat ITOMS.
-
-Nama file/module ini tetap "local" (bukan "postgres") biar semua file lain yang
-udah nulis `from db.local import get_conn` gak perlu diubah satu-satu — cukup
-ganti isi module ini aja.
-
-Info koneksi diambil dari config.py (Config.LOCAL_DB_*), konsisten sama HRIS/WEBSERV
-yang udah ada di config.py — bukan bikin cara baru sendiri.
-
-PENTING — beda sama versi SQLite lama:
-- Placeholder tetap boleh pakai "?" di query (otomatis di-translate ke "%s").
-- "INSERT OR IGNORE" SQLite TIDAK otomatis diterjemahkan — itu harus di-edit manual
-  per file jadi "INSERT ... ON CONFLICT (...) DO NOTHING" (sintaks Postgres).
-- conn.execute(...) tetap ada (dibungkus biar mirip sqlite3.Connection), return-nya
-  punya .fetchall() / .fetchone() kayak biasa. Row hasil query tetap bisa diakses
-  pakai row["nama_kolom"] (pakai RealDictCursor).
-"""
-
 import psycopg2
 import psycopg2.extras
 from config import Config
 
 
 class _CursorResult:
-    """Wrapper cursor psycopg2 biar mirip return value sqlite3 (.fetchall/.fetchone)."""
 
     def __init__(self, cursor):
         self._cursor = cursor
@@ -41,14 +20,10 @@ class _CursorResult:
 
     @property
     def lastrowid(self):
-        # Postgres gak punya lastrowid otomatis kayak SQLite.
-        # Kalau butuh id abis INSERT, tambahin "RETURNING id" di query-nya,
-        # terus ambil lewat .fetchone()["id"] bukan lewat .lastrowid ini.
         return None
 
 
 class PGConnection:
-    """Wrapper psycopg2.connection biar cara pakainya semirip mungkin sqlite3.Connection lama."""
 
     def __init__(self, raw_conn):
         self._conn = raw_conn
@@ -68,7 +43,6 @@ class PGConnection:
     def close(self):
         self._conn.close()
 
-    # Biar tetap bisa dipakai gaya "with get_conn() as conn:" kayak sebelumnya
     def __enter__(self):
         return self
 
@@ -94,7 +68,6 @@ def get_conn() -> PGConnection:
 
 
 def init_db():
-    """Bikin semua tabel kalau belum ada (idempotent, aman dipanggil berkali-kali)."""
     ddl = """
     CREATE TABLE IF NOT EXISTS whitelist (
         user_id BIGINT PRIMARY KEY, nama TEXT NOT NULL, no_hp TEXT,
@@ -189,25 +162,74 @@ def init_db():
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS berita_acara (
+        id SERIAL PRIMARY KEY,
+        kode_outlet TEXT NOT NULL,
+        nama_outlet TEXT NOT NULL,
+        tanggal_kejadian DATE NOT NULL,
+        nama_unit TEXT NOT NULL,
+        penyebab JSONB NOT NULL DEFAULT '[]'::jsonb,
+        sparepart JSONB NOT NULL DEFAULT '[]'::jsonb,
+        nama_outlet_signer TEXT,
+        outlet_signature_path TEXT,
+        support_id BIGINT REFERENCES whitelist(user_id),
+        manager_it_id BIGINT REFERENCES whitelist(user_id),
+        pdf_path TEXT,
+        dibuat_oleh BIGINT NOT NULL REFERENCES whitelist(user_id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS bot_group (
+        id SERIAL PRIMARY KEY,
+        chat_id BIGINT NOT NULL UNIQUE,
+        nama_grup TEXT,
+        tipe TEXT NOT NULL DEFAULT 'internal' CHECK (tipe IN ('internal', 'kasir')),
+        last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS komplain_keyword (
+        id SERIAL PRIMARY KEY,
+        keyword TEXT NOT NULL UNIQUE
+    );
+    CREATE TABLE IF NOT EXISTS auto_reply_keyword (
+        id SERIAL PRIMARY KEY,
+        keyword TEXT NOT NULL,
+        balasan TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS live_chat_message (
+        id SERIAL PRIMARY KEY,
+        telegram_user_id BIGINT NOT NULL,
+        nama_pengirim TEXT,
+        arah TEXT NOT NULL CHECK (arah IN ('masuk','keluar')),
+        isi_pesan TEXT NOT NULL,
+        dibalas_oleh TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
     """
     with get_conn() as conn:
         conn.execute(ddl)
+        existing = conn.execute("SELECT COUNT (*) as c FROM komplain_keyword").fetchone()["c"]
+        if existing == 0:
+            for kw in ("KODE TOKO", "NAMA TOKO", "PROBLEM"):
+                conn.execute(
+                    "INSERT INTO komplain_keyword (keyword) VALUES (?) ON CONFLICT (keyword) DO NOTHING",
+                    (kw,)
+                )
         conn.commit()
 
-        # Migrasi jaga-jaga: kalau tabel `artikel`/`check_retur` udah kebuat
-        # duluan pas `kode_artikel` masih TEXT, dan/atau kolom `serial_number`
-        # belum ada. Aman dijalanin berkali-kali (idempotent).
         migrasi = [
             "ALTER TABLE artikel ALTER COLUMN kode TYPE INTEGER USING kode::integer",
             "ALTER TABLE check_retur ALTER COLUMN kode_artikel TYPE INTEGER USING NULLIF(kode_artikel, '')::integer",
             "ALTER TABLE check_retur ADD COLUMN IF NOT EXISTS serial_number TEXT",
+            "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS signature_path TEXT",
+            "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS is_manager_it BOOLEAN NOT NULL DEFAULT FALSE",
         ]
         for stmt in migrasi:
             try:
                 conn.execute(stmt)
                 conn.commit()
             except Exception:
-                conn.rollback()  # kolomnya udah sesuai / gak perlu diubah
+                conn.rollback() 
 
 
 # ──────────────────────────────────────────
@@ -347,3 +369,39 @@ def get_all_nama_jadwal() -> list[str]:
     with get_conn() as conn:
         rows = conn.execute("SELECT DISTINCT nama FROM jadwal ORDER BY nama").fetchall()
         return [r["nama"] for r in rows]
+
+# ──────────────────────────────────────────
+# Bot: grup, keyword komplain, auto-reply, live chat
+# ──────────────────────────────────────────
+
+def track_group(chat_id: int, nama_grup: str):
+    """Catat/update grup yang bot join, dipanggil tiap ada pesan masuk dari grup."""
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO bot_group (chat_id, nama_grup, last_seen_at)
+            VALUES (?, ?, NOW())
+            ON CONFLICT (chat_id) DO UPDATE SET nama_grup = excluded.nama_grup, last_seen_at = NOW()
+        """, (chat_id, nama_grup))
+        conn.commit()
+
+
+def get_komplain_keywords() -> list[str]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT keyword FROM komplain_keyword ORDER BY id").fetchall()
+        return [r["keyword"] for r in rows]
+
+
+def get_auto_reply_keywords() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM auto_reply_keyword ORDER BY id").fetchall()
+        return [dict(r) for r in rows]
+
+
+def simpan_live_chat(telegram_user_id: int, nama_pengirim: str, arah: str,
+                      isi_pesan: str, dibalas_oleh: str = None):
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO live_chat_message (telegram_user_id, nama_pengirim, arah, isi_pesan, dibalas_oleh)
+            VALUES (?, ?, ?, ?, ?)
+        """, (telegram_user_id, nama_pengirim, arah, isi_pesan, dibalas_oleh))
+        conn.commit()

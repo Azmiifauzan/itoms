@@ -9,11 +9,17 @@ Isinya otomatis nyesuain berdasarkan permission:
 Superadmin (is_superadmin) otomatis lolos semua permission di atas.
 """
 
+import os
+import uuid
 from datetime import datetime, timezone, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, send_from_directory, abort
 from werkzeug.security import check_password_hash, generate_password_hash
 from dashboard.auth import login_required, get_current_user, has_permission
 from db.local import get_conn
+
+# Folder simpen tanda tangan user (dipakai berulang di Berita Acara)
+SIGNATURE_DIR = os.environ.get("STORAGE_BASE_PATH", "/app/data-internal") + "/signatures"
+ALLOWED_SIGNATURE_EXT = {".png", ".jpg", ".jpeg"}
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
@@ -298,4 +304,56 @@ def edit_nama():
             )
             conn.commit()
         session["nama"] = nama_baru
+    return redirect(url_for("dashboard.profile"))
+
+
+@dashboard_bp.route("/profile/ttd-preview")
+@login_required
+def ttd_preview():
+    user = get_current_user()
+    if not user.get("signature_path"):
+        abort(404)
+    return send_from_directory(SIGNATURE_DIR, user["signature_path"])
+
+
+@dashboard_bp.route("/profile/upload-ttd", methods=["POST"])
+@login_required
+def upload_ttd():
+    """Upload tanda tangan sekali, dipakai berulang tiap bikin Berita Acara
+    (sebagai Support atau kalau ybs ditandai jadi Manager IT)."""
+    user = get_current_user()
+    file = request.files.get("signature")
+    if file and file.filename:
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext in ALLOWED_SIGNATURE_EXT:
+            os.makedirs(SIGNATURE_DIR, exist_ok=True)
+            nama_file = f"sig_{user['user_id']}_{uuid.uuid4().hex[:8]}{ext}"
+            file.save(os.path.join(SIGNATURE_DIR, nama_file))
+
+            # hapus file lama biar gak numpuk sampah
+            if user.get("signature_path"):
+                lama = os.path.join(SIGNATURE_DIR, user["signature_path"])
+                if os.path.isfile(lama):
+                    os.remove(lama)
+
+            with get_conn() as conn:
+                conn.execute(
+                    "UPDATE whitelist SET signature_path = ? WHERE user_id = ?",
+                    (nama_file, user["user_id"])
+                )
+                conn.commit()
+    return redirect(url_for("dashboard.profile"))
+
+
+@dashboard_bp.route("/profile/hapus-ttd", methods=["POST"])
+@login_required
+def hapus_ttd():
+    user = get_current_user()
+    if user.get("signature_path"):
+        p = os.path.join(SIGNATURE_DIR, user["signature_path"])
+        if os.path.isfile(p):
+            os.remove(p)
+        with get_conn() as conn:
+            conn.execute("UPDATE whitelist SET signature_path = NULL WHERE user_id = ?", (user["user_id"],))
+            conn.commit()
     return redirect(url_for("dashboard.profile"))

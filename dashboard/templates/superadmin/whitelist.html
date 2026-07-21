@@ -21,6 +21,8 @@
 .perm-chip-option.checked-visual{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:600}
 .superadmin-toggle{display:flex;align-items:center;gap:9px;padding:11px 14px;border:1px solid #FDE68A;border-radius:var(--radius-sm);background:var(--warning-bg);cursor:pointer;font-weight:600;font-size:13px;color:var(--warning)}
 .superadmin-toggle input{accent-color:var(--warning);flex-shrink:0;width:16px;height:16px}
+.manager-it-toggle{display:flex;align-items:center;gap:9px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--primary-light);cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);margin-top:8px}
+.manager-it-toggle input{accent-color:var(--primary);flex-shrink:0;width:16px;height:16px}
 {% endblock %}
 
 {% block content %}
@@ -118,6 +120,10 @@
                                     <input type="checkbox" name="is_superadmin" {% if w.is_superadmin %}checked{% endif %}>
                                     <span>Jadikan Superadmin</span>
                                 </label>
+                                <label class="manager-it-toggle">
+                                    <input type="checkbox" name="is_manager_it" {% if w.is_manager_it %}checked{% endif %}>
+                                    <span>Jadikan Manager IT <span class="text-muted text-xs" style="font-weight:400">(cuma boleh 1 orang — TTD-nya dipakai di Berita Acara)</span></span>
+                                </label>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Permissions</label>
@@ -192,6 +198,10 @@
                     <label class="superadmin-toggle">
                         <input type="checkbox" name="is_superadmin">
                         <span>Jadikan Superadmin</span>
+                    </label>
+                    <label class="manager-it-toggle">
+                        <input type="checkbox" name="is_manager_it">
+                        <span>Jadikan Manager IT <span class="text-muted text-xs" style="font-weight:400">(cuma boleh 1 orang)</span></span>
                     </label>
                 </div>
                 <div class="form-group">

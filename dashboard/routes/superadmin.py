@@ -21,6 +21,7 @@ AVAILABLE_PERMISSIONS = [
     ("generate_jadwal", "Kelola & Generate Jadwal"),
     ("config_bot", "Konfigurasi Bot"),
     ("edit_check_retur", "Edit Data Check Retur"),
+    ("edit_berita_acara", "Edit/Hapus Berita Acara"),
 ]
 
 
@@ -180,6 +181,7 @@ def tambah_whitelist():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "").strip()
     is_superadmin = request.form.get("is_superadmin") == "on"
+    is_manager_it = request.form.get("is_manager_it") == "on"
     permissions = request.form.getlist("permissions")
 
     if not (user_id.isdigit() and nama and username and password):
@@ -190,16 +192,20 @@ def tambah_whitelist():
 
     with get_conn() as conn:
         try:
+            # Kalau user ini ditandai jadi Manager IT baru, lepas dulu status
+            # itu dari orang lain -- cuma boleh 1 orang.
+            if is_manager_it:
+                conn.execute("UPDATE whitelist SET is_manager_it = FALSE WHERE is_manager_it = TRUE")
             conn.execute("""
                 INSERT INTO whitelist
                     (user_id, nama, no_hp, telegram_id_2, username, password_hash,
-                     is_superadmin, permissions)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     is_superadmin, is_manager_it, permissions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (int(user_id), nama, no_hp or None, tg2, username, password_hash,
-                  is_superadmin, Json(permissions)))
+                  is_superadmin, is_manager_it, Json(permissions)))
             conn.commit()
         except Exception:
-            pass  # user_id atau username udah dipakai
+            conn.rollback()  # user_id atau username udah dipakai
 
     return redirect(url_for("superadmin.whitelist"))
 
@@ -214,6 +220,7 @@ def edit_whitelist(user_id):
     username = request.form.get("username", "").strip()
     password_baru = request.form.get("password_baru", "").strip()
     is_superadmin = request.form.get("is_superadmin") == "on"
+    is_manager_it = request.form.get("is_manager_it") == "on"
     permissions = request.form.getlist("permissions")
 
     if not nama:
@@ -222,22 +229,24 @@ def edit_whitelist(user_id):
     tg2 = int(telegram_id_2) if telegram_id_2.isdigit() else None
 
     with get_conn() as conn:
+        if is_manager_it:
+            conn.execute("UPDATE whitelist SET is_manager_it = FALSE WHERE is_manager_it = TRUE AND user_id != ?", (user_id,))
         if password_baru:
             conn.execute("""
                 UPDATE whitelist SET
                     nama = ?, no_hp = ?, telegram_id_2 = ?, username = ?,
-                    password_hash = ?, is_superadmin = ?, permissions = ?
+                    password_hash = ?, is_superadmin = ?, is_manager_it = ?, permissions = ?
                 WHERE user_id = ?
             """, (nama, no_hp or None, tg2, username, generate_password_hash(password_baru),
-                  is_superadmin, Json(permissions), user_id))
+                  is_superadmin, is_manager_it, Json(permissions), user_id))
         else:
             conn.execute("""
                 UPDATE whitelist SET
                     nama = ?, no_hp = ?, telegram_id_2 = ?, username = ?,
-                    is_superadmin = ?, permissions = ?
+                    is_superadmin = ?, is_manager_it = ?, permissions = ?
                 WHERE user_id = ?
             """, (nama, no_hp or None, tg2, username,
-                  is_superadmin, Json(permissions), user_id))
+                  is_superadmin, is_manager_it, Json(permissions), user_id))
         conn.commit()
 
     return redirect(url_for("superadmin.whitelist"))

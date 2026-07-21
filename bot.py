@@ -14,6 +14,7 @@ from handlers.commands import (
     cmd_cekid,
     cmd_share,
     grup_listener,
+    live_chat_listener,
 )
 from handlers.jadwal_reminder import jadwal_job_off, jadwal_job_piket, jadwal_job_oncall
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
@@ -43,8 +44,8 @@ async def _setup_scheduler(app):
     di titik ini event loop asyncio-nya udah jalan jadi aman buat AsyncIOScheduler."""
     scheduler = AsyncIOScheduler(timezone=WIB)
     scheduler.add_job(jadwal_job_off, "cron", hour=8, minute=0, args=[app])
-    scheduler.add_job(jadwal_job_piket, "cron", hour=6, minute=30, args=[app])
-    scheduler.add_job(jadwal_job_oncall, "cron", hour=17, minute=25, args=[app])
+    scheduler.add_job(jadwal_job_piket, "cron", hour=8, minute=30, args=[app])
+    scheduler.add_job(jadwal_job_oncall, "cron", hour=17, minute=0, args=[app])
     scheduler.start()
     logger.info("Scheduler jadwal reminder aktif (off 08:00, piket 08:30, oncall 17:00 WIB).")
 
@@ -81,6 +82,8 @@ def main():
     app.add_handler(CommandHandler("start_adempiere",   cmd_start_adempiere))
     app.add_handler(CallbackQueryHandler(adempiere_callback, pattern="^adempiere:"))
     app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, grup_listener))
+    
+    app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, live_chat_listener))
 
 
     logger.info("Bot mulai berjalan...")

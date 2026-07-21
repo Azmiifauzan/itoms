@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}Berita Acara{% endblock %}
+{% block page_title %}Berita Acara{% endblock %}
+
+{% block extra_style %}
+.ba-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.table-scroll{overflow-x:auto;border-radius:var(--radius)}
+.ba-table{width:100%;border-collapse:collapse;min-width:880px}
+.ba-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap}
+.ba-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.ba-table tr:last-child td{border-bottom:none}
+.ba-table tr:hover td{background:var(--bg-hover)}
+
+.dynlist{display:flex;flex-direction:column;gap:8px}
+.dynlist-row{display:flex;gap:8px;align-items:center}
+.dynlist-row input{flex:1}
+.dynlist-remove{width:34px;height:34px;flex-shrink:0;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.dynlist-remove:hover{background:var(--danger-bg);color:var(--danger);border-color:#FECACA}
+.dynlist-add{align-self:flex-start}
+
+.sig-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-hover)}
+.sig-card img{max-height:36px;max-width:90px;object-fit:contain;background:#fff;border-radius:4px;border:1px solid var(--border)}
+.sig-card-info{flex:1;min-width:0}
+.sig-card-name{font-weight:600;font-size:13px}
+.sig-card-role{font-size:11px;color:var(--text-muted)}
+.sig-warn{font-size:11.5px;color:var(--warning);display:flex;align-items:center;gap:5px;margin-top:4px}
+.sig-empty{width:44px;height:36px;flex-shrink:0;border:1px dashed var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+
+.pdf-link{display:inline-flex;align-items:center;gap:5px;color:var(--primary);font-weight:600}
+.pdf-link:hover{text-decoration:underline}
+{% endblock %}
+
+{% block content %}
+<div class="ba-toolbar">
+    <div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.i('signature', 17) }} Berita Acara</div>
+        <div class="text-muted text-sm mt-1">{{ rows|length }} berita acara tercatat</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modalInputBA')">{{ icons.i('plus', 14) }} Buat Berita Acara</button>
+</div>
+
+<div class="card" style="overflow:hidden">
+    <div class="table-scroll">
+    <table class="ba-table">
+        <thead>
+            <tr>
+                <th>Outlet</th>
+                <th>Tanggal Kejadian</th>
+                <th>Unit</th>
+                <th>Dibuat Oleh</th>
+                <th>PDF</th>
+                {% if bisa_edit %}<th style="text-align:right">Aksi</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>
+                    <div style="font-weight:700">{{ r.nama_outlet }}</div>
+                    <div class="text-muted text-sm">{{ r.kode_outlet }}</div>
+                </td>
+                <td>{{ r.tanggal_kejadian.strftime('%d %b %Y') if r.tanggal_kejadian else '—' }}</td>
+                <td>{{ r.nama_unit }}</td>
+                <td class="text-muted">{{ r.dibuat_oleh_nama or '—' }}</td>
+                <td>
+                    {% if r.pdf_path %}
+                    <a href="/berita-acara/{{ r.id }}/download" target="_blank" class="pdf-link">{{ icons.i('file', 14) }} Lihat PDF</a>
+                    {% else %}
+                    <span class="text-muted text-sm">Diproses...</span>
+                    {% endif %}
+                </td>
+                {% if bisa_edit %}
+                <td>
+                    <div class="flex gap-2" style="justify-content:flex-end">
+                        <form method="POST" action="/berita-acara/{{ r.id }}/hapus" style="display:inline" onsubmit="return confirm('Hapus Berita Acara {{ r.nama_outlet }}?')">
+                            <button type="submit" class="btn btn-danger-soft btn-xs">{{ icons.i('trash', 12) }} Hapus</button>
+                        </form>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ 6 if bisa_edit else 5 }}" style="text-align:center;padding:40px;color:var(--text-muted)">Belum ada Berita Acara</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<datalist id="unitDatalist">
+    {% for a in artikel_list %}<option value="{{ a.nama }}">{% endfor %}
+</datalist>
+
+<!-- Modal Input Berita Acara -->
+<div class="modal-overlay" id="modalInputBA" onclick="if(event.target===this)closeModal('modalInputBA')">
+    <div class="modal-box modal-box-lg">
+        <div class="modal-header">
+            <span class="modal-title">{{ icons.i('signature', 18) }} Buat Berita Acara</span>
+            <button class="btn-icon" onclick="closeModal('modalInputBA')">{{ icons.i('x', 16) }}</button>
+        </div>
+        <form method="POST" action="/berita-acara/buat" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Kode Outlet</label>
+                        <input type="text" name="kode_outlet" required class="form-control" placeholder="contoh: R010511">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nama Outlet</label>
+                        <input type="text" name="nama_outlet" required class="form-control" placeholder="contoh: Roti'O Rumah Sakit PIK">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Tanggal Kejadian</label>
+                        <input type="date" name="tanggal_kejadian" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nama Unit / Alat</label>
+                        <input type="text" name="nama_unit" required class="form-control" list="unitDatalist" autocomplete="off" placeholder="Ketik atau pilih...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Penyebab Kerusakan</label>
+                    <div class="dynlist" id="penyebabList">
+                        <div class="dynlist-row">
+                            <input type="text" name="penyebab[]" class="form-control" placeholder="contoh: Slot RAM di motherboard rusak">
+                            <button type="button" class="dynlist-remove" onclick="dynRemove(this)">{{ icons.i('x', 14) }}</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-xs dynlist-add mt-2" onclick="dynAdd('penyebabList', 'penyebab[]', 'contoh: Slot RAM di motherboard rusak')">{{ icons.i('plus', 12) }} Tambah baris</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Sparepart yang Diganti</label>
+                    <div class="dynlist" id="sparepartList">
+                        <div class="dynlist-row">
+                            <input type="text" name="sparepart[]" class="form-control" placeholder="contoh: Compos Touch Dual Monitor">
+                            <button type="button" class="dynlist-remove" onclick="dynRemove(this)">{{ icons.i('x', 14) }}</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-xs dynlist-add mt-2" onclick="dynAdd('sparepartList', 'sparepart[]', 'contoh: Compos Touch Dual Monitor')">{{ icons.i('plus', 12) }} Tambah baris</button>
+                </div>
+
+                <div class="divider mt-4 mb-4"></div>
+
+                <div class="form-label mb-2" style="font-size:13px">Tanda Tangan Outlet <span class="text-muted text-xs" style="font-weight:400">(dari Kasir/Leader/PIC/SPV yang ada di lokasi)</span></div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nama Kasir/Leader/PIC/SPV</label>
+                        <input type="text" name="nama_outlet_signer" required class="form-control" placeholder="Nama lengkap">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Foto Tanda Tangan</label>
+                        <input type="file" name="outlet_signature" accept="image/*" required class="form-control">
+                    </div>
+                </div>
+
+                <div class="divider mt-4 mb-4"></div>
+
+                <div class="form-label mb-2" style="font-size:13px">Tanda Tangan Otomatis</div>
+                <div class="form-group">
+                    <div class="sig-card mb-2">
+                        {% if user_punya_ttd %}
+                        <img src="/dashboard/profile/ttd-preview">
+                        {% else %}
+                        <div class="sig-empty">{{ icons.i('signature', 16) }}</div>
+                        {% endif %}
+                        <div class="sig-card-info">
+                            <div class="sig-card-name">{{ user.nama }}</div>
+                            <div class="sig-card-role">Support (kamu)</div>
+                            {% if not user_punya_ttd %}
+                            <div class="sig-warn">{{ icons.i('alert-triangle', 12) }} Belum ada TTD tersimpan — <a href="/dashboard/profile" style="color:var(--warning);text-decoration:underline">upload di Profile</a></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="sig-card">
+                        {% if manager_it and manager_it.signature_path %}
+                        <div class="sig-empty" style="border-style:solid;background:#fff">{{ icons.i('check-circle', 16) }}</div>
+                        {% else %}
+                        <div class="sig-empty">{{ icons.i('alert-triangle', 16) }}</div>
+                        {% endif %}
+                        <div class="sig-card-info">
+                            <div class="sig-card-name">{{ manager_it.nama if manager_it else 'Belum diatur' }}</div>
+                            <div class="sig-card-role">Manager IT</div>
+                            {% if manager_it and not manager_it.signature_path %}
+                            <div class="sig-warn">{{ icons.i('alert-triangle', 12) }} TTD Manager IT belum di-upload</div>
+                            {% elif not manager_it %}
+                            <div class="sig-warn">{{ icons.i('alert-triangle', 12) }} Belum ada yang ditandai Manager IT (atur di Whitelist)</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-hint mt-2">Kolom MIC sengaja dikosongin di PDF — ditandatangan manual belakangan.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalInputBA')">Batal</button>
+                <button type="submit" class="btn btn-primary">{{ icons.i('check', 14) }} Buat &amp; Generate PDF</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function dynAdd(listId, name, placeholder) {
+    const list = document.getElementById(listId);
+    const row = document.createElement('div');
+    row.className = 'dynlist-row';
+    row.innerHTML = `<input type="text" name="${name}" class="form-control" placeholder="${placeholder}">
+        <button type="button" class="dynlist-remove" onclick="dynRemove(this)">✕</button>`;
+    list.appendChild(row);
+}
+function dynRemove(btn) {
+    const row = btn.closest('.dynlist-row');
+    const list = row.parentElement;
+    if (list.children.length > 1) row.remove();
+    else row.querySelector('input').value = '';
+}
+</script>
+{% endblock %}
