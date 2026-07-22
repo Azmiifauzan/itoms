@@ -10,7 +10,7 @@
 {% endif %}
 
 <h2>Live Chat</h2>
-<table class=""table>
+<table class="table">
     <thead>
         <tr>
             <th>Nama</th>
@@ -20,7 +20,7 @@
     </thead>
     <tbody>
         {% for c in conversations %}
-        <tr onclick="windows.locations='/bot/chat/{{ c.telegram_user_id }}'" style="cursor.pointer">
+        <tr onclick="windows.location='/bot/chat/{{ c.telegram_user_id }}'" style="cursor:pointer">
             <td>{{ c.nama_pengirim }}</td>
             <td>{{ c.isi_pesan[:50] }}</td>
             <td>{{ c.created_at.strftime('%d/%m/%y %H:%M') }}</td>
@@ -29,4 +29,5 @@
         <tr><td colspan="3"> GAK ADA YANG MAU CHAT BOT KOCAK.</td></tr>
         {% endfor %}
     </tbody>
+</table>
 {% endblock %}
