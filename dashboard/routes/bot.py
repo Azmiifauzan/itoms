@@ -5,7 +5,8 @@ Semua route di sini butuh permission "config_bot" (atau superadmin).
 """
 
 from flask import Blueprint, render_template
-from dashboard.auth import login_required, permission_required
+from dashboard.auth import login_required, permission_required, has_permission
+
 
 bot_bp = Blueprint("bot", __name__, url_prefix="/bot")
 

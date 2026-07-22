@@ -266,7 +266,6 @@
         <div class="sidebar-logo">
             <div class="logo-icon">{{ icons.i('monitor', 17) }}</div>
             <span class="logo-text">ITOMS</span>
-            <span class="logo-ver">v2</span>
         </div>
 
         <nav class="sidebar-nav">
@@ -286,7 +285,7 @@
             <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
                 {{ icons.i('folder') }} File Kita Bersama
             </a>
-            <a href="/bot/index.html" class="nav-item {% if request.path.startswith('/bot') %}active{% endif %}">
+            <a href="/bot/" class="nav-item {% if request.path.startswith('/bot') %}active{% endif %}">
                 {{ icons.i('message') }} Bot
             </a>
             {% if session.is_superadmin %}
