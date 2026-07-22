@@ -170,11 +170,27 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Foto <span class="text-muted text-xs">(opsional)</span></label>
-                    <div class="file-drop-mini" onclick="document.getElementById('fotoInput_new').click()" id="fotoLabel_new">
+                    <div style="position:relative">
+                    <div class="file-drop-mini" onclick="crTogglePilihanFoto('new')" id="fotoLabel_new">
                         {{ icons.i('upload', 14) }} Klik buat pilih foto
                     </div>
-                    <input type="file" name="foto" id="fotoInput_new" accept="image/*" style="display:none"
-                        onchange="crShowFilename(this, 'fotoLabel_new')">
+                    <div class="cr-pilihan-foto" id="fotoPilihan_new" style="display:none;position:absolute;z-index:10;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15);margin-top:4px">
+                        <div class="cr-pilihan-item" onclick="document.getElementById('fotoInputKamera_new').click()" style="padding:10px 14px;cursor:pointer">
+                            {{ icons.i('monitor', 14) }} Ambil Foto
+                        </div>
+                    <div class="cr-pilihan-item" onclick="document.getElementById('fotoInputGaleri_new').click()" style="padding:10px 14px;cursor:pointer">
+                        {{ icons.i('folder', 14) }} Pilih dari Galeri
+                    </div>
+                    </div>
+                </div>
+
+                <!-- input KHUSUS kamera: capture="environment" paksa buka kamera langsung -->
+                <input type="file" name="foto" id="fotoInputKamera_new" accept="image/*" capture="environment" style="display:none"
+                    onchange="crPilihFoto(this, 'new')">
+
+                <!-- input KHUSUS galeri: tanpa capture, buka file picker biasa -->
+                <input type="file" id="fotoInputGaleri_new" accept="image/*" style="display:none"
+                     onchange="crPilihFoto(this, 'new')">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Keterangan <span class="text-muted text-xs">(opsional)</span></label>
