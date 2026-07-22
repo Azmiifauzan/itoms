@@ -60,19 +60,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     is_admin = user_id in Config.ADMIN_USER_IDS
 
     text = (
-        "👋 <b>Bot POS</b>\n\n"
-        "<b>Command tersedia:</b>\n"
-        "• /daftar &lt;noabsen&gt; — Buat user POS dari data HRIS\n"
-        "• /status — Cek koneksi semua database\n"
-        "• /myid — Lihat Telegram User ID kamu\n"
+        "APAAN SI MANGGIL MANGGIL"
     )
-    if is_admin:
-        text += (
-            "\n<b>Command admin:</b>\n"
-            "• /adduser &lt;user_id&gt; &lt;nama&gt; — Tambah user ke whitelist\n"
-            "• /removeuser &lt;user_id&gt; — Hapus user dari whitelist\n"
-            "• /listuser — Lihat semua user di whitelist\n"
-        )
+
     await update.message.reply_text(text, parse_mode="HTML")
 
 

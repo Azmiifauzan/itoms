@@ -33,6 +33,9 @@ def kirim_notif_task_baru(task_id: int, judul: str, assignee_ids: list):
                 except Exception as e:
                     logger.error(f"Gagal kirim notif ke {row['nama']}: {e}")
 
+def kirim_live_chat_reply(telegram_user_id: int, text: str):
+    """Kirim balasan dari dashboard ke user telegram (buat fitur live chat)."""
+    asyncio.run(_send(telegram_user_id, text))
 
 async def _send(chat_id: int, text: str):
     bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)

@@ -2,7 +2,14 @@
 {% block title %}Detail Chat{% endblock %}
 {% block page_title %}Percakapan{% endblock %}
 {% block content %}
+
 {% for m in messages %}
 <p><b>{{ m.nama_pengirim if m.arah == 'masuk' else 'Kamu' }}:</b> {{ m.isi_pesan }}</p>
 {% endfor %}
+
+<form method="POST" action="/bot/chat/{{ telegram_user_id }}/reply">
+    <input type="text" name="pesan" placeholder="Ketik balasan..." required>
+    <button type="submit">Kirim</button>
+</form>
+
 {% endblock %}
