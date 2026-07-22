@@ -2,13 +2,11 @@
 {% block title %}Bot — Live Chat{% endblock %}
 {% block page_title %}Live Chat{% endblock %}
 {% block content %}
-
 {% if bisa_config %}
 <a href="/bot/config" class="card p-3" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;text-decoration:none">
     {{ icons.i('settings', 16) }} Konfigurasi Bot
 </a>
 {% endif %}
-
 <h2>Live Chat</h2>
 <table class="table">
     <thead>
@@ -20,13 +18,13 @@
     </thead>
     <tbody>
         {% for c in conversations %}
-        <tr onclick="windows.location='/bot/chat/{{ c.telegram_user_id }}'" style="cursor:pointer">
+        <tr onclick="window.location='/bot/chat/{{ c.telegram_user_id }}'" style="cursor:pointer">
             <td>{{ c.nama_pengirim }}</td>
             <td>{{ c.isi_pesan[:50] }}</td>
             <td>{{ c.created_at.strftime('%d/%m/%y %H:%M') }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="3"> GAK ADA YANG MAU CHAT BOT KOCAK.</td></tr>
+        <tr><td colspan="3">GAK ADA YANG MAU CHAT BOT KOCAK.</td></tr>
         {% endfor %}
     </tbody>
 </table>
