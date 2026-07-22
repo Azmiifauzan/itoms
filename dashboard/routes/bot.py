@@ -46,7 +46,7 @@ def chat_reply(telegram_user_id):
         simpan_live_chat(
             telegram_user_id=telegram_user_id,
             nama_pengirim=user["nama"] if user else "Admin",
-            arah="keluar"
+            arah="keluar",
             isi_pesan=text,
             dibalas_oleh=user["nama"] if user else None,
         )
