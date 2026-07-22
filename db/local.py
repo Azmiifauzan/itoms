@@ -405,3 +405,28 @@ def simpan_live_chat(telegram_user_id: int, nama_pengirim: str, arah: str,
             VALUES (?, ?, ?, ?, ?)
         """, (telegram_user_id, nama_pengirim, arah, isi_pesan, dibalas_oleh))
         conn.commit()
+
+def get_live_chat_conversations() -> list[dict]:
+    """Ambil 1 baris per pengirim - pesan terakhir dari tiap orang.
+    ini yang akan tampil di halaman daftar live chat. """
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT DISTINCT ON (telegram_user_id)
+                telegram_user_id, nama_pengirim, isi_pesan, arah, created_at
+            FROM live_chat_message
+            ORDER BY telegram_user_id, created_at DESC
+        """).fetchall()
+        hasil = [dict(r) for r in rows]
+        # DISTINCT ON di atas urutin dulu per telegram_user_id,
+        hasil.sort(key=lambda r: r["created_at"], reverse=True)
+        return hasil
+
+def get_live_chat_messages(telegram_user_id: int) -> list[dict]:
+    """Ambil Semua history pesan dengan 1 orang tertentu, urut dari paling lama ke paling baru"""
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT * FROM live_chat_message
+            WHERE telegram_user_id = ?
+            ORDER BY created_at ASC
+        """, (telegram_user_id)).fetchall()
+        return [dict(r) for r in rows]
