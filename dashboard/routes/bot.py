@@ -39,7 +39,7 @@ def chat_detail(telegram_user_id):
 @bot_bp.route("/chat/<int:telegram_user_id>/reply", methods=["POST"])
 @login_required
 def chat_reply(telegram_user_id):
-    text = request.from .get("pesan", "").strip()
+    text = request.form .get("pesan", "").strip()
     if text:
         user = get_current_user()
         kirim_live_chat_reply(telegram_user_id, text)
