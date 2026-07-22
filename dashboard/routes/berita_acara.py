@@ -1,20 +1,3 @@
-"""
-dashboard/routes/berita_acara.py
-Fitur "Berita Acara" — form kerusakan unit di outlet, auto-generate PDF
-dengan 4 tanda tangan:
-  1. Kasir/Leader/PIC/SPV outlet -> diupload manual tiap kali (orang outlet
-     gak punya akun sistem)
-  2. Support -> otomatis dari user yang login & bikin BA ini, tanda tangan
-     diambil dari whitelist.signature_path
-  3. MIC -> sengaja DIKOSONGIN di PDF, ditandatangan manual belakangan
-  4. Manager IT -> fixed 1 orang (whitelist.is_manager_it = true), tanda
-     tangan diambil dari whitelist.signature_path
-
-PDF di-generate pakai WeasyPrint (HTML -> PDF) lalu disimpan langsung ke
-folder storage yang sama dengan "File Kita Bersama", biar bisa diakses juga
-dari situ.
-"""
-
 import os
 import base64
 import uuid

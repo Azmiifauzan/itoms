@@ -17,6 +17,7 @@ from dashboard.routes.superadmin import superadmin_bp
 from dashboard.routes.storage import storage_bp
 from dashboard.routes.check_retur import check_retur_bp
 from dashboard.routes.berita_acara import berita_acara_bp
+from dashboard.routes.bot import bot_bp
 
 app = Flask(__name__, template_folder="templates")
 app.jinja_env.globals.update(enumerate=enumerate)
@@ -51,6 +52,7 @@ app.register_blueprint(superadmin_bp)
 app.register_blueprint(storage_bp)
 app.register_blueprint(check_retur_bp)
 app.register_blueprint(berita_acara_bp)
+app.register_blueprint(bot_bp)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7770, debug=False)
