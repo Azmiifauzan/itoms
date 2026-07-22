@@ -405,10 +405,10 @@ def simpan_live_chat(telegram_user_id: int, nama_pengirim: str, arah: str,
             VALUES (?, ?, ?, ?, ?)
         """, (telegram_user_id, nama_pengirim, arah, isi_pesan, dibalas_oleh))
         conn.commit()
-
-def get_live_chat_conversations() -> list[dict]:
-    """Ambil 1 baris per pengirim - pesan terakhir dari tiap orang.
-    ini yang akan tampil di halaman daftar live chat. """
+ 
+ 
+def get_live_chat_threads() -> list[dict]:
+    """List percakapan live chat, 1 baris per pengirim (pesan terbarunya), urut terbaru duluan."""
     with get_conn() as conn:
         rows = conn.execute("""
             SELECT DISTINCT ON (telegram_user_id)
@@ -416,17 +416,65 @@ def get_live_chat_conversations() -> list[dict]:
             FROM live_chat_message
             ORDER BY telegram_user_id, created_at DESC
         """).fetchall()
-        hasil = [dict(r) for r in rows]
-        # DISTINCT ON di atas urutin dulu per telegram_user_id,
-        hasil.sort(key=lambda r: r["created_at"], reverse=True)
-        return hasil
-
+        threads = [dict(r) for r in rows]
+        threads.sort(key=lambda t: t["created_at"], reverse=True)
+        return threads
+ 
+ 
 def get_live_chat_messages(telegram_user_id: int) -> list[dict]:
-    """Ambil Semua history pesan dengan 1 orang tertentu, urut dari paling lama ke paling baru"""
     with get_conn() as conn:
         rows = conn.execute("""
             SELECT * FROM live_chat_message
             WHERE telegram_user_id = ?
             ORDER BY created_at ASC
-        """, (telegram_user_id)).fetchall()
+        """, (telegram_user_id,)).fetchall()
         return [dict(r) for r in rows]
+ 
+ 
+def get_bot_groups() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM bot_group ORDER BY last_seen_at DESC").fetchall()
+        return [dict(r) for r in rows]
+ 
+ 
+def update_bot_group_tipe(chat_id: int, tipe: str):
+    with get_conn() as conn:
+        conn.execute("UPDATE bot_group SET tipe = ? WHERE chat_id = ?", (tipe, chat_id))
+        conn.commit()
+ 
+ 
+def get_komplain_keywords_full() -> list[dict]:
+    """Sama kayak get_komplain_keywords() tapi include id, buat ditampilin+dihapus di UI."""
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM komplain_keyword ORDER BY id").fetchall()
+        return [dict(r) for r in rows]
+ 
+ 
+def add_komplain_keyword(keyword: str):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO komplain_keyword (keyword) VALUES (?) ON CONFLICT (keyword) DO NOTHING",
+            (keyword,)
+        )
+        conn.commit()
+ 
+ 
+def delete_komplain_keyword(keyword_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM komplain_keyword WHERE id = ?", (keyword_id,))
+        conn.commit()
+ 
+ 
+def add_auto_reply_keyword(keyword: str, balasan: str):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO auto_reply_keyword (keyword, balasan) VALUES (?, ?)",
+            (keyword, balasan)
+        )
+        conn.commit()
+ 
+ 
+def delete_auto_reply_keyword(keyword_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM auto_reply_keyword WHERE id = ?", (keyword_id,))
+        conn.commit()

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Chat — {{ nama }}{% endblock %}
+{% block page_title %}Live Chat{% endblock %}
+
+{% block extra_style %}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--primary);font-size:13px;font-weight:600;margin-bottom:16px}
+.back-link:hover{text-decoration:underline}
+.chat-header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.chat-header-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--cyan));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.chat-header-name{font-weight:700;font-size:15px}
+
+.chat-thread{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.bubble{max-width:72%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45}
+.bubble.masuk{align-self:flex-start;background:var(--bg-hover);border-bottom-left-radius:4px}
+.bubble.keluar{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.bubble-time{font-size:10px;opacity:.65;margin-top:4px}
+
+.reply-form{max-width:640px;margin:0 auto;display:flex;gap:8px}
+{% endblock %}
+
+{% block content %}
+<a href="/bot/" class="back-link">{{ icons.i('arrow-left', 14) }} Kembali ke Live Chat</a>
+
+<div class="chat-header">
+    <div class="chat-header-avatar">{{ (nama or '?')[0].upper() }}</div>
+    <div class="chat-header-name">{{ nama }}</div>
+</div>
+
+<div class="chat-thread">
+    {% for m in messages %}
+    <div class="bubble {{ m.arah }}">
+        {{ m.isi_pesan }}
+        <div class="bubble-time">
+            {{ m.created_at.strftime('%d/%m %H:%M') }}
+            {% if m.arah == 'keluar' and m.dibalas_oleh %} — {{ m.dibalas_oleh }}{% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="text-muted text-sm" style="text-align:center;padding:30px">Belum ada pesan.</div>
+    {% endfor %}
+</div>
+
+<form method="POST" action="/bot/chat/{{ telegram_user_id }}/kirim" class="reply-form">
+    <input type="text" name="isi" class="form-control" placeholder="Balas {{ nama }}..." required autocomplete="off">
+    <button type="submit" class="btn btn-primary">{{ icons.i('send', 14) }} Kirim</button>
+</form>
+{% endblock %}
