@@ -286,7 +286,7 @@
             <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
                 {{ icons.i('folder') }} File Kita Bersama
             </a>
-            <a href="/bot/" class="nav-item {% if request.path.startswith('/bot') %}active{% endif %}">
+            <a href="/bot/index.html" class="nav-item {% if request.path.startswith('/bot') %}active{% endif %}">
                 {{ icons.i('message') }} Bot
             </a>
             {% if session.is_superadmin %}
