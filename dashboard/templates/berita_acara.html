@@ -90,6 +90,13 @@
     </div>
 </div>
 
+<datalist id="outletKodeList">
+    {% for o in outlet_list %}<option value="{{ o.kode_outlet }}" data-nama="{{ o.nama_outlet }}">{% endfor %}
+</datalist>
+<datalist id="outletNamaList">
+    {% for o in outlet_list %}<option value="{{ o.nama_outlet }}" data-kode="{{ o.kode_outlet }}">{% endfor %}
+</datalist>
+
 <datalist id="unitDatalist">
     {% for a in artikel_list %}<option value="{{ a.nama }}">{% endfor %}
 </datalist>
@@ -106,11 +113,15 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Kode Outlet</label>
-                        <input type="text" name="kode_outlet" required class="form-control">
+                        <input type="text" name="kode_outlet" id="kodeOutletInput" required class="form-control"
+                            list="outletKodeList" autocomplete="off"
+                            oninput="outletFromKode(this)" placeholder="Ketik atau pilih...">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Nama Outlet</label>
-                        <input type="text" name="nama_outlet" required class="form-control">
+                        <input type="text" name="nama_outlet" id="namaOutletInput" required class="form-control"
+                            list="outletNamaList" autocomplete="off"
+                            oninput="outletFromNama(this)" placeholder="Ketik atau pilih...">
                     </div>
                 </div>
                 <div class="grid-2">
@@ -177,7 +188,7 @@
                             <div class="sig-warn">{{ icons.i('alert-triangle', 12) }} Belum ada TTD tersimpan — <a href="/dashboard/profile" style="color:var(--warning);text-decoration:underline">upload di Profile</a></div>
                             {% endif %}
                         </div>
-                    </div>            
+                    </div>                    
                 </div>
             </div>
             <div class="modal-footer">
@@ -191,6 +202,22 @@
 
 {% block extra_script %}
 <script>
+const OUTLET_MAP_BY_KODE = {
+    {%- for o in outlet_list %}"{{ o.kode_outlet }}": {{ o.nama_outlet|tojson }},{% endfor %}
+};
+const OUTLET_MAP_BY_NAMA = {
+    {%- for o in outlet_list %}{{ o.nama_outlet|tojson }}: {{ o.kode_outlet|tojson }},{% endfor %}
+};
+</script>
+<script>
+function outletFromKode(inputEl) {
+    const nama = OUTLET_MAP_BY_KODE[inputEl.value];
+    if (nama) document.getElementById('namaOutletInput').value = nama;
+}
+function outletFromNama(inputEl) {
+    const kode = OUTLET_MAP_BY_NAMA[inputEl.value];
+    if (kode) document.getElementById('kodeOutletInput').value = kode;
+}
 function dynAdd(listId, name, placeholder, datalistId) {
     const list = document.getElementById(listId);
     const row = document.createElement('div');

@@ -1,3 +1,20 @@
+"""
+dashboard/routes/berita_acara.py
+Fitur "Berita Acara" — form kerusakan unit di outlet, auto-generate PDF
+dengan 4 tanda tangan:
+  1. Kasir/Leader/PIC/SPV outlet -> diupload manual tiap kali (orang outlet
+     gak punya akun sistem)
+  2. Support -> otomatis dari user yang login & bikin BA ini, tanda tangan
+     diambil dari whitelist.signature_path
+  3. MIC -> sengaja DIKOSONGIN di PDF, ditandatangan manual belakangan
+  4. Manager IT -> fixed 1 orang (whitelist.is_manager_it = true), tanda
+     tangan diambil dari whitelist.signature_path
+
+PDF di-generate pakai WeasyPrint (HTML -> PDF) lalu disimpan langsung ke
+folder storage yang sama dengan "File Kita Bersama", biar bisa diakses juga
+dari situ.
+"""
+
 import os
 import base64
 import uuid
@@ -10,6 +27,7 @@ from werkzeug.utils import secure_filename
 from weasyprint import HTML
 from dashboard.auth import login_required, get_current_user, has_permission
 from db.local import get_conn
+from db.webserv import get_outlet_list
 
 berita_acara_bp = Blueprint("berita_acara", __name__, url_prefix="/berita-acara")
 
@@ -83,10 +101,13 @@ def index():
         """).fetchall()
         artikel_list = conn.execute("SELECT nama FROM artikel ORDER BY nama").fetchall()
 
+    outlet_list = get_outlet_list()
+
     return render_template("berita_acara.html",
         user=user, rows=rows, bisa_edit=bisa_edit,
         artikel_list=artikel_list, manager_it=manager_it,
         user_punya_ttd=bool(user.get("signature_path")),
+        outlet_list=outlet_list,
     )
 
 
@@ -141,7 +162,10 @@ def _generate_pdf(ba_id: int):
 
     outlet_sig_uri = _img_data_uri(OUTLET_SIG_DIR, ba["outlet_signature_path"])
     support_sig_uri = _img_data_uri(SIGNATURE_DIR, support["signature_path"]) if support else None
-    manager_sig_uri = _img_data_uri(SIGNATURE_DIR, manager_it["signature_path"]) if manager_it else None
+    # Manager IT: namanya tetap auto-terisi (biar formatnya kayak dokumen asli
+    # "Manager IT (Nurullah)"), TAPI tanda tangannya sengaja TIDAK ditempel
+    # otomatis -- tetap manual kayak MIC, sesuai instruksi.
+    manager_sig_uri = None
 
     html_string = render_template("berita_acara_pdf.html",
         ba=ba, support=support, manager_it=manager_it,
