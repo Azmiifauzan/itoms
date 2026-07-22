@@ -106,11 +106,11 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Kode Outlet</label>
-                        <input type="text" name="kode_outlet" required class="form-control" placeholder="contoh: R010511">
+                        <input type="text" name="kode_outlet" required class="form-control">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Nama Outlet</label>
-                        <input type="text" name="nama_outlet" required class="form-control" placeholder="contoh: Roti'O Rumah Sakit PIK">
+                        <input type="text" name="nama_outlet" required class="form-control">
                     </div>
                 </div>
                 <div class="grid-2">
@@ -128,7 +128,7 @@
                     <label class="form-label">Penyebab Kerusakan</label>
                     <div class="dynlist" id="penyebabList">
                         <div class="dynlist-row">
-                            <input type="text" name="penyebab[]" class="form-control" placeholder="contoh: Slot RAM di motherboard rusak">
+                            <input type="text" name="penyebab[]" class="form-control">
                             <button type="button" class="dynlist-remove" onclick="dynRemove(this)">{{ icons.i('x', 14) }}</button>
                         </div>
                     </div>
@@ -139,11 +139,11 @@
                     <label class="form-label">Sparepart yang Diganti</label>
                     <div class="dynlist" id="sparepartList">
                         <div class="dynlist-row">
-                            <input type="text" name="sparepart[]" class="form-control" placeholder="contoh: Compos Touch Dual Monitor">
+                            <input type="text" name="sparepart[]" class="form-control" list="unitDatalist" autocomplete="off">
                             <button type="button" class="dynlist-remove" onclick="dynRemove(this)">{{ icons.i('x', 14) }}</button>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-outline btn-xs dynlist-add mt-2" onclick="dynAdd('sparepartList', 'sparepart[]', 'contoh: Compos Touch Dual Monitor')">{{ icons.i('plus', 12) }} Tambah baris</button>
+                    <button type="button" class="btn btn-outline btn-xs dynlist-add mt-2" onclick="dynAdd('sparepartList', 'sparepart[]', 'contoh: Compos Touch Dual Monitor', 'unitDatalist')">{{ icons.i('plus', 12) }} Tambah baris</button>
                 </div>
 
                 <div class="divider mt-4 mb-4"></div>
@@ -152,7 +152,7 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Nama Kasir/Leader/PIC/SPV</label>
-                        <input type="text" name="nama_outlet_signer" required class="form-control" placeholder="Nama lengkap">
+                        <input type="text" name="nama_outlet_signer" required class="form-control">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Foto Tanda Tangan</label>
@@ -179,22 +179,13 @@
                         </div>
                     </div>
                     <div class="sig-card">
-                        {% if manager_it and manager_it.signature_path %}
-                        <div class="sig-empty" style="border-style:solid;background:#fff">{{ icons.i('check-circle', 16) }}</div>
-                        {% else %}
-                        <div class="sig-empty">{{ icons.i('alert-triangle', 16) }}</div>
-                        {% endif %}
+                        <div class="sig-empty">{{ icons.i('signature', 16) }}</div>
                         <div class="sig-card-info">
-                            <div class="sig-card-name">{{ manager_it.nama if manager_it else 'Belum diatur' }}</div>
-                            <div class="sig-card-role">Manager IT</div>
-                            {% if manager_it and not manager_it.signature_path %}
-                            <div class="sig-warn">{{ icons.i('alert-triangle', 12) }} TTD Manager IT belum di-upload</div>
-                            {% elif not manager_it %}
-                            <div class="sig-warn">{{ icons.i('alert-triangle', 12) }} Belum ada yang ditandai Manager IT (atur di Whitelist)</div>
-                            {% endif %}
+                            <div class="sig-card-name">{{ manager_it.nama if manager_it else 'Belum diatur (atur di Whitelist)' }}</div>
+                            <div class="sig-card-role">Manager IT — nama auto, tanda tangan manual di kertas</div>
                         </div>
                     </div>
-                    <div class="form-hint mt-2">Kolom MIC sengaja dikosongin di PDF — ditandatangan manual belakangan.</div>
+                    <div class="form-hint mt-2">Kolom MIC & Manager IT sengaja dikosongin tanda tangannya di PDF — ditandatangan manual belakangan.</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -208,11 +199,12 @@
 
 {% block extra_script %}
 <script>
-function dynAdd(listId, name, placeholder) {
+function dynAdd(listId, name, placeholder, datalistId) {
     const list = document.getElementById(listId);
     const row = document.createElement('div');
     row.className = 'dynlist-row';
-    row.innerHTML = `<input type="text" name="${name}" class="form-control" placeholder="${placeholder}">
+    const listAttr = datalistId ? ` list="${datalistId}" autocomplete="off"` : '';
+    row.innerHTML = `<input type="text" name="${name}" class="form-control"${listAttr} placeholder="${placeholder}">
         <button type="button" class="dynlist-remove" onclick="dynRemove(this)">✕</button>`;
     list.appendChild(row);
 }

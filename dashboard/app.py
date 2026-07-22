@@ -23,22 +23,13 @@ app.jinja_env.globals.update(enumerate=enumerate)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if not app.secret_key:
     raise RuntimeError(
-        "FLASK_SECRET_KEY belum di-set di .env! Generate dulu dengan:\n"
-        "  python -c \"import secrets; print(secrets.token_hex(32))\"\n"
-        "lalu taruh hasilnya di file .env, contoh:\n"
-        "  FLASK_SECRET_KEY=hasil_random_tadi"
+        "FLASK_SECRET_KEY"
     )
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024 * 1024
 
-# Biar perubahan file .html kebaca tiap request, gak perlu restart container
-# tiap kali edit template (restart tetap perlu kalau ubah kode .py).
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
-# ── Session timeout ──
-# Sesi otomatis expired kalau gak ada aktivitas selama X menit (sliding: tiap
-# request yang aktif bakal reset ulang hitungannya, jadi user aktif gak
-# ke-logout tiba-tiba di tengah kerja).
 SESSION_TIMEOUT_MENIT = 30
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=SESSION_TIMEOUT_MENIT)
 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
