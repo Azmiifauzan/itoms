@@ -176,14 +176,15 @@
         input[type="range"]{accent-color:var(--primary)}
 
         /* ===== Modal ===== */
-        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,12,24,.5);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px}
+        body.modal-open{overflow:hidden}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,12,24,.5);backdrop-filter:blur(4px);z-index:200;align-items:center;align-items:safe center;justify-content:center;padding:20px;overflow-y:auto;overscroll-behavior:contain}
         .modal-overlay.open{display:flex}
-        .modal-box{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);animation:modalIn .2s cubic-bezier(.34,1.56,.64,1);max-height:88vh;max-height:88dvh;display:flex;flex-direction:column}
+        .modal-box{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);animation:modalIn .2s cubic-bezier(.34,1.56,.64,1);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
         .modal-box-lg{max-width:560px}
         @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
         .modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
         .modal-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-        .modal-body{padding:20px;overflow-y:auto;flex:1;min-height:0}
+        .modal-body{padding:20px;overflow-y:auto;flex:1 1 0%;min-height:0;overscroll-behavior:contain}
         .modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0}
 
         /* Sidebar overlay mobile */
@@ -276,14 +277,14 @@
             <a href="/jadwal/" class="nav-item {% if 'jadwal' in request.path %}active{% endif %}">
                 {{ icons.i('calendar') }} Jadwal
             </a>
-            <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
-                {{ icons.i('folder') }} File Kita Bersama
-            </a>
             <a href="/check-retur/" class="nav-item {% if 'check-retur' in request.path %}active{% endif %}">
                 {{ icons.cr_outline(18) }} Check Retur
             </a>
             <a href="/berita-acara/" class="nav-item {% if 'berita-acara' in request.path %}active{% endif %}">
                 {{ icons.i('signature') }} Berita Acara
+            </a>
+            <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
+                {{ icons.i('folder') }} File Kita Bersama
             </a>
             <a href="/bot/" class="nav-item {% if request.path.startswith('/bot') %}active{% endif %}">
                 {{ icons.i('bot') }} Bot
@@ -301,7 +302,7 @@
                 {{ icons.cr_outline(18) }} Master Artikel
             </a>
             <a href="/superadmin/whitelist" class="nav-item {% if 'whitelist' in request.path %}active{% endif %}">
-                {{ icons.i('list') }} Whitelist &amp; User
+                {{ icons.i('list') }} Whitelist Bot
             </a>
             {% endif %}
             <div class="nav-divider"></div>
@@ -319,7 +320,7 @@
                 <div class="user-avatar">{{ (session.nama or 'U')[0].upper() }}</div>
                 <div style="flex:1;min-width:0">
                     <div class="user-name">{{ session.nama }}</div>
-                    {% if session.is_superadmin %}<div class="user-role">Superadmin</div>{% endif %}
+                    <div class="user-role">{{ 'Superadmin' if session.is_superadmin else 'User' }}</div>
                 </div>
             </div>
         </div>
@@ -446,10 +447,42 @@ function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function _fitModalBody(overlayEl) {
+    const box = overlayEl.querySelector('.modal-box');
+    if (!box) return;
+    const header = box.querySelector('.modal-header');
+    const footer = box.querySelector('.modal-footer');
+    const body = box.querySelector('.modal-body');
+    if (!body) return;
+    const maxBoxPx = window.innerHeight * 0.88 - 40; // 40 = padding overlay atas+bawah
+    const headerPx = header ? header.offsetHeight : 0;
+    const footerPx = footer ? footer.offsetHeight : 0;
+    const bodyMax = Math.max(maxBoxPx - headerPx - footerPx, 120);
+    body.style.maxHeight = bodyMax + 'px';
+    body.style.overflowY = 'auto';
+}
+function openModal(id) {
+    const overlay = document.getElementById(id);
+    overlay.classList.add('open');
+    document.body.classList.add('modal-open');
+    // dihitung lewat JS langsung (inline style), gak bergantung sama CSS flex
+    // sama sekali -- biar gak ada lagi kemungkinan ketiban rule CSS lain.
+    requestAnimationFrame(() => _fitModalBody(overlay));
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    if (!document.querySelector('.modal-overlay.open')) {
+        document.body.classList.remove('modal-open');
+    }
+}
+window.addEventListener('resize', () => {
+    document.querySelectorAll('.modal-overlay.open').forEach(_fitModalBody);
+});
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+        document.body.classList.remove('modal-open');
+    }
 });
 
 // ── Idle session timeout ──
