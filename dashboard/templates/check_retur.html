@@ -33,6 +33,22 @@
 .file-drop-mini:hover{border-color:var(--primary);background:var(--primary-light)}
 .file-drop-mini.has-file{color:var(--primary);border-color:var(--primary);font-weight:600}
 
+.th-filter{position:relative;display:flex;align-items:center;gap:4px}
+.th-filter-btn{border:none;background:transparent;color:var(--text-muted);cursor:pointer;padding:3px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.th-filter-btn:hover{background:var(--bg-hover);color:var(--text)}
+.th-filter-btn.active{color:var(--primary)}
+.th-filter-btn .chev-down{transform:rotate(90deg);transition:transform .15s}
+.th-filter-btn.open .chev-down{transform:rotate(270deg)}
+.col-filter-panel{display:none;flex-direction:column;position:absolute;top:calc(100% + 6px);left:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);min-width:200px;max-width:260px;z-index:80;padding:6px;text-transform:none;font-weight:400}
+.col-filter-panel.open{display:flex}
+.col-filter-search{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--bg)}
+.col-filter-search input{border:none;background:transparent;outline:none;font-size:12.5px;width:100%;color:var(--text);font-weight:400}
+.col-filter-search .icon{color:var(--text-muted);flex-shrink:0}
+.col-filter-list{display:flex;flex-direction:column;max-height:220px;overflow-y:auto}
+.col-filter-item{display:block;padding:7px 9px;border-radius:6px;font-size:12.5px;color:var(--text);text-decoration:none;transition:background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col-filter-item:hover{background:var(--bg-hover)}
+.col-filter-item.selected{background:var(--primary-light);color:var(--primary);font-weight:600}
+
 .kondisi-group{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .kondisi-opt{position:relative}
 .kondisi-opt input{position:absolute;opacity:0;width:1px;height:1px}
@@ -48,30 +64,18 @@
 <div class="cr-toolbar">
     <div>
         <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.cr_mark(19) }} Check Retur</div>
-        <div class="text-muted text-sm mt-1">{{ rows|length }} data pengecekan</div>
+        <div class="text-muted text-sm mt-1">{{ rows|length }} data pengecekan{% if artikel or kondisi %} (terfilter){% endif %}</div>
     </div>
     <div class="flex gap-2" style="flex-wrap:wrap;flex:1;justify-content:flex-end">
-        <form class="flex gap-2" style="flex-wrap:wrap" method="GET" action="/check-retur/" id="filterForm">
-            <div class="cr-search">
-                {{ icons.i('search', 15) }}
-                <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / artikel / serial...">
-            </div>
-            <select name="artikel" class="form-select" style="width:auto" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Semua Artikel</option>
-                {% for a in artikel_list %}
-                <option value="{{ a.nama }}" {% if a.nama == artikel %}selected{% endif %}>{{ a.nama }}</option>
-                {% endfor %}
-            </select>
-            <select name="kondisi" class="form-select" style="width:auto" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Semua Kondisi</option>
-                <option value="ok" {% if kondisi=='ok' %}selected{% endif %}>OK</option>
-                <option value="service" {% if kondisi=='service' %}selected{% endif %}>Service</option>
-                <option value="waste" {% if kondisi=='waste' %}selected{% endif %}>Waste</option>
-            </select>
-            {% if q or artikel or kondisi %}
-            <a href="/check-retur/" class="btn btn-outline btn-sm" title="Reset filter">{{ icons.i('x', 13) }}</a>
-            {% endif %}
+        <form class="cr-search" method="GET" action="/check-retur/" id="searchForm">
+            {{ icons.i('search', 15) }}
+            <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / serial...">
+            <input type="hidden" name="artikel" value="{{ artikel }}">
+            <input type="hidden" name="kondisi" value="{{ kondisi }}">
         </form>
+        {% if q or artikel or kondisi %}
+        <a href="/check-retur/" class="btn btn-outline btn-sm" title="Reset semua filter">{{ icons.i('x', 13) }} Reset</a>
+        {% endif %}
         <a href="{{ url_for('check_retur.download_excel', q=q, artikel=artikel, kondisi=kondisi) }}" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Excel</a>
         <button class="btn btn-primary btn-sm" onclick="openModal('modalInputCR')">{{ icons.i('plus', 14) }} Input Baru</button>
     </div>
@@ -83,9 +87,39 @@
         <thead>
             <tr>
                 <th>No Surat</th>
-                <th>Artikel</th>
+                <th>
+                    <div class="th-filter">
+                        <span>Artikel</span>
+                        <button type="button" class="th-filter-btn {% if artikel %}active{% endif %}" onclick="toggleColFilter('colfArtikel', event)">{{ icons.i('chevron-right', 11, 'chev-down') }}</button>
+                        <div class="col-filter-panel" id="colfArtikel">
+                            <div class="col-filter-search">
+                                {{ icons.i('search', 13) }}
+                                <input type="text" placeholder="Cari artikel..." oninput="filterColOptions('colfArtikel', this.value)">
+                            </div>
+                            <div class="col-filter-list">
+                                <a href="{{ url_for('check_retur.index', q=q, kondisi=kondisi) }}" class="col-filter-item {% if not artikel %}selected{% endif %}">Semua Artikel</a>
+                                {% for a in artikel_list %}
+                                <a href="{{ url_for('check_retur.index', q=q, artikel=a.nama, kondisi=kondisi) }}" class="col-filter-item {% if a.nama==artikel %}selected{% endif %}" data-txt="{{ a.nama|lower }}">{{ a.nama }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </th>
                 <th>Serial Number</th>
-                <th>Kondisi</th>
+                <th>
+                    <div class="th-filter">
+                        <span>Kondisi</span>
+                        <button type="button" class="th-filter-btn {% if kondisi %}active{% endif %}" onclick="toggleColFilter('colfKondisi', event)">{{ icons.i('chevron-right', 11, 'chev-down') }}</button>
+                        <div class="col-filter-panel" id="colfKondisi">
+                            <div class="col-filter-list">
+                                <a href="{{ url_for('check_retur.index', q=q, artikel=artikel) }}" class="col-filter-item {% if not kondisi %}selected{% endif %}">Semua Kondisi</a>
+                                <a href="{{ url_for('check_retur.index', q=q, artikel=artikel, kondisi='ok') }}" class="col-filter-item {% if kondisi=='ok' %}selected{% endif %}">OK</a>
+                                <a href="{{ url_for('check_retur.index', q=q, artikel=artikel, kondisi='service') }}" class="col-filter-item {% if kondisi=='service' %}selected{% endif %}">Service</a>
+                                <a href="{{ url_for('check_retur.index', q=q, artikel=artikel, kondisi='waste') }}" class="col-filter-item {% if kondisi=='waste' %}selected{% endif %}">Waste</a>
+                            </div>
+                        </div>
+                    </div>
+                </th>
                 <th>Foto</th>
                 <th>Keterangan</th>
                 <th>Dicek Oleh</th>
@@ -150,7 +184,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">No Surat <span class="text-muted text-xs">(opsional)</span></label>
-                    <input type="text" name="no_surat" class="form-control">
+                    <input type="text" name="no_surat" class="form-control" placeholder="contoh: SJ-2026-0001, atau kosongin kalau gak ada">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
@@ -167,7 +201,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Serial Number <span class="text-muted text-xs">(opsional)</span></label>
-                    <input type="text" name="serial_number" class="form-control">
+                    <input type="text" name="serial_number" class="form-control" placeholder="Serial number barang...">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>
@@ -201,7 +235,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Keterangan <span class="text-muted text-xs">(opsional)</span></label>
-                    <textarea name="keterangan" class="form-control"></textarea>
+                    <textarea name="keterangan" class="form-control" placeholder="Catatan tambahan..."></textarea>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
                     <label class="form-label">Dicek Oleh</label>
@@ -322,6 +356,33 @@ function crAutofillKode(inputEl, kodeElId) {
     const kodeEl = document.getElementById(kodeElId);
     if (opt && kodeEl) kodeEl.value = opt.dataset.kode || '';
 }
+function toggleColFilter(id, event) {
+    event.stopPropagation();
+    const panel = document.getElementById(id);
+    const btn = event.currentTarget;
+    const willOpen = !panel.classList.contains('open');
+    document.querySelectorAll('.col-filter-panel.open').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.th-filter-btn.open').forEach(b => b.classList.remove('open'));
+    if (willOpen) {
+        panel.classList.add('open');
+        btn.classList.add('open');
+        const searchInput = panel.querySelector('.col-filter-search input');
+        if (searchInput) setTimeout(() => searchInput.focus(), 30);
+    }
+}
+function filterColOptions(panelId, query) {
+    const q = query.trim().toLowerCase();
+    document.querySelectorAll('#' + panelId + ' .col-filter-item[data-txt]').forEach(item => {
+        item.style.display = item.dataset.txt.includes(q) ? '' : 'none';
+    });
+}
+document.addEventListener('click', e => {
+    if (!e.target.closest('.th-filter')) {
+        document.querySelectorAll('.col-filter-panel.open').forEach(p => p.classList.remove('open'));
+        document.querySelectorAll('.th-filter-btn.open').forEach(b => b.classList.remove('open'));
+    }
+});
+
 function triggerFotoPicker(inputId, useCamera) {
     const input = document.getElementById(inputId);
     if (useCamera) input.setAttribute('capture', 'environment');
