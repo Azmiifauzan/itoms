@@ -279,18 +279,14 @@
             <a href="/storage/" class="nav-item {% if 'storage' in request.path %}active{% endif %}">
                 {{ icons.i('folder') }} File Kita Bersama
             </a>
+            <a href="/check-retur/" class="nav-item {% if 'check-retur' in request.path %}active{% endif %}">
+                {{ icons.cr_outline(18) }} Check Retur
+            </a>
+            <a href="/berita-acara/" class="nav-item {% if 'berita-acara' in request.path %}active{% endif %}">
+                {{ icons.i('signature') }} Berita Acara
+            </a>
             <a href="/bot/" class="nav-item {% if request.path.startswith('/bot') %}active{% endif %}">
-                <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="5" y="8" width="14" height="11" rx="3"/>
-                    <circle cx="9.5" cy="13.3" r="1.15" fill="currentColor" stroke="none"/>
-                    <circle cx="14.5" cy="13.3" r="1.15" fill="currentColor" stroke="none"/>
-                    <path d="M9.5 16.5h5"/>
-                    <path d="M12 8V4.5"/>
-                    <circle cx="12" cy="3" r="1.3" fill="currentColor" stroke="none"/>
-                    <path d="M2.5 12.5h2.5"/>
-                    <path d="M19 12.5h2.5"/>
-                </svg>
-                Bot
+                {{ icons.i('bot') }} Bot
             </a>
             {% if session.is_superadmin %}
             <div class="nav-divider"></div>
@@ -300,6 +296,9 @@
             </a>
             <a href="/superadmin/piket" class="nav-item {% if 'piket' in request.path %}active{% endif %}">
                 {{ icons.i('shield') }} Daftar Piket
+            </a>
+            <a href="/superadmin/artikel" class="nav-item {% if 'artikel' in request.path %}active{% endif %}">
+                {{ icons.cr_outline(18) }} Master Artikel
             </a>
             <a href="/superadmin/whitelist" class="nav-item {% if 'whitelist' in request.path %}active{% endif %}">
                 {{ icons.i('list') }} Whitelist &amp; User
