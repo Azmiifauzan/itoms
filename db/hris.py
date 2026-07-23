@@ -53,8 +53,7 @@ def get_outlet_list() -> list[dict]:
     """
     query = """
         SELECT "Name"
-        FROM "CM_Division"
-        WHERE "DivisionTypeId" = 4 AND "IsDeleted" = false
+        FROM "Member"."CM_Division"
         ORDER BY "Name"
     """
     conn = None
