@@ -50,12 +50,30 @@
         <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ icons.cr_mark(19) }} Check Retur</div>
         <div class="text-muted text-sm mt-1">{{ rows|length }} data pengecekan</div>
     </div>
-    <div class="flex gap-3" style="flex-wrap:wrap;flex:1;justify-content:flex-end">
-        <form class="cr-search" method="GET" action="/check-retur/">
-            {{ icons.i('search', 15) }}
-            <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / artikel / serial...">
+    <div class="flex gap-2" style="flex-wrap:wrap;flex:1;justify-content:flex-end">
+        <form class="flex gap-2" style="flex-wrap:wrap" method="GET" action="/check-retur/" id="filterForm">
+            <div class="cr-search">
+                {{ icons.i('search', 15) }}
+                <input type="text" name="q" value="{{ q }}" placeholder="Cari no surat / artikel / serial...">
+            </div>
+            <select name="artikel" class="form-select" style="width:auto" onchange="document.getElementById('filterForm').submit()">
+                <option value="">Semua Artikel</option>
+                {% for a in artikel_list %}
+                <option value="{{ a.nama }}" {% if a.nama == artikel %}selected{% endif %}>{{ a.nama }}</option>
+                {% endfor %}
+            </select>
+            <select name="kondisi" class="form-select" style="width:auto" onchange="document.getElementById('filterForm').submit()">
+                <option value="">Semua Kondisi</option>
+                <option value="ok" {% if kondisi=='ok' %}selected{% endif %}>OK</option>
+                <option value="service" {% if kondisi=='service' %}selected{% endif %}>Service</option>
+                <option value="waste" {% if kondisi=='waste' %}selected{% endif %}>Waste</option>
+            </select>
+            {% if q or artikel or kondisi %}
+            <a href="/check-retur/" class="btn btn-outline btn-sm" title="Reset filter">{{ icons.i('x', 13) }}</a>
+            {% endif %}
         </form>
-        <button class="btn btn-primary" onclick="openModal('modalInputCR')">{{ icons.i('plus', 14) }} Input Baru</button>
+        <a href="{{ url_for('check_retur.download_excel', q=q, artikel=artikel, kondisi=kondisi) }}" class="btn btn-outline btn-sm">{{ icons.i('download', 14) }} Excel</a>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalInputCR')">{{ icons.i('plus', 14) }} Input Baru</button>
     </div>
 </div>
 
@@ -131,25 +149,25 @@
         <form method="POST" action="/check-retur/buat" enctype="multipart/form-data">
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">No Surat</label>
-                    <input type="text" name="no_surat" required class="form-control">
+                    <label class="form-label">No Surat <span class="text-muted text-xs">(opsional)</span></label>
+                    <input type="text" name="no_surat" class="form-control">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
                         <label class="form-label">Nama Artikel</label>
                         <input type="text" name="nama_artikel" required class="form-control"
                             list="artikelDatalist" autocomplete="off"
-                            oninput="crAutofillKode(this, 'kodeInput_new')">
+                            oninput="crAutofillKode(this, 'kodeInput_new')" placeholder="Ketik atau pilih...">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Kode Artikel</label>
-                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control"  readonly style="background:var(--bg-hover);cursor:not-allowed">
+                        <input type="text" name="kode_artikel" id="kodeInput_new" class="form-control" placeholder="Otomatis dari Nama Artikel" readonly style="background:var(--bg-hover);cursor:not-allowed">
                         <div class="form-hint">Terkunci — kepilih otomatis pas Nama Artikel dipilih dari daftar</div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Serial Number <span class="text-muted text-xs">(opsional)</span></label>
-                    <input type="text" name="serial_number" class="form-control" >
+                    <input type="text" name="serial_number" class="form-control">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kondisi</label>
@@ -170,8 +188,13 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Foto <span class="text-muted text-xs">(opsional)</span></label>
-                    <div class="file-drop-mini" onclick="document.getElementById('fotoInput_new').click()" id="fotoLabel_new">
-                        {{ icons.i('upload', 14) }} Klik buat pilih foto
+                    <div class="flex gap-2">
+                        <div class="file-drop-mini" style="flex:1" onclick="triggerFotoPicker('fotoInput_new', false)" id="fotoLabel_new">
+                            {{ icons.i('upload', 14) }} Pilih dari Galeri
+                        </div>
+                        <div class="file-drop-mini" style="flex:1" onclick="triggerFotoPicker('fotoInput_new', true)">
+                            {{ icons.i('camera', 14) }} Buka Kamera
+                        </div>
                     </div>
                     <input type="file" name="foto" id="fotoInput_new" accept="image/*" style="display:none"
                         onchange="crShowFilename(this, 'fotoLabel_new')">
@@ -218,8 +241,8 @@
         <form method="POST" action="/check-retur/{{ r.id }}/edit" enctype="multipart/form-data">
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">No Surat</label>
-                    <input type="text" name="no_surat" value="{{ r.no_surat }}" required class="form-control">
+                    <label class="form-label">No Surat <span class="text-muted text-xs">(opsional)</span></label>
+                    <input type="text" name="no_surat" value="{{ r.no_surat }}" class="form-control">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
@@ -264,8 +287,13 @@
                         </label>
                     </div>
                     {% endif %}
-                    <div class="file-drop-mini" onclick="document.getElementById('fotoInput_{{ r.id }}').click()" id="fotoLabel_{{ r.id }}">
-                        {{ icons.i('upload', 14) }} {{ 'Ganti foto' if r.foto_path else 'Klik buat pilih foto' }}
+                    <div class="flex gap-2">
+                        <div class="file-drop-mini" style="flex:1" onclick="triggerFotoPicker('fotoInput_{{ r.id }}', false)" id="fotoLabel_{{ r.id }}">
+                            {{ icons.i('upload', 14) }} {{ 'Ganti (galeri)' if r.foto_path else 'Pilih dari Galeri' }}
+                        </div>
+                        <div class="file-drop-mini" style="flex:1" onclick="triggerFotoPicker('fotoInput_{{ r.id }}', true)">
+                            {{ icons.i('camera', 14) }} Buka Kamera
+                        </div>
                     </div>
                     <input type="file" name="foto" id="fotoInput_{{ r.id }}" accept="image/*" style="display:none"
                         onchange="crShowFilename(this, 'fotoLabel_{{ r.id }}')">
@@ -293,6 +321,12 @@ function crAutofillKode(inputEl, kodeElId) {
     const opt = Array.from(list.options).find(o => o.value === inputEl.value);
     const kodeEl = document.getElementById(kodeElId);
     if (opt && kodeEl) kodeEl.value = opt.dataset.kode || '';
+}
+function triggerFotoPicker(inputId, useCamera) {
+    const input = document.getElementById(inputId);
+    if (useCamera) input.setAttribute('capture', 'environment');
+    else input.removeAttribute('capture');
+    input.click();
 }
 function crShowFilename(inputEl, labelId) {
     const label = document.getElementById(labelId);

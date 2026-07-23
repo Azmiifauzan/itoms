@@ -13,11 +13,12 @@ di /superadmin/artikel (lihat routes/superadmin.py). Form di sini cuma
 """
 
 import os
+import io
 import uuid
 from datetime import datetime, timezone, timedelta
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    send_from_directory, abort,
+    send_from_directory, send_file, abort,
 )
 from werkzeug.utils import secure_filename
 from dashboard.auth import login_required, get_current_user, has_permission
@@ -65,6 +66,46 @@ def _hapus_foto(nama_file: str | None):
             pass
 
 
+def _ambil_filter_args():
+    return {
+        "q": request.args.get("q", "").strip(),
+        "artikel": request.args.get("artikel", "").strip(),
+        "kondisi": request.args.get("kondisi", "").strip(),
+    }
+
+
+def _query_rows(q: str, artikel: str, kondisi: str, limit: int | None = 200):
+    """Query check_retur dengan filter pencarian teks + dropdown artikel/kondisi.
+    Dipakai bareng sama halaman list & export Excel biar hasilnya konsisten."""
+    where = []
+    params = []
+
+    if q:
+        like = f"%{q}%"
+        where.append("(cr.no_surat ILIKE ? OR cr.nama_artikel ILIKE ? OR cr.kode_artikel::text ILIKE ? OR cr.serial_number ILIKE ?)")
+        params += [like, like, like, like]
+    if artikel:
+        where.append("cr.nama_artikel = ?")
+        params.append(artikel)
+    if kondisi in KONDISI_VALID:
+        where.append("cr.kondisi = ?")
+        params.append(kondisi)
+
+    sql = """
+        SELECT cr.*, w.nama as dicek_oleh_nama
+        FROM check_retur cr
+        LEFT JOIN whitelist w ON cr.dicek_oleh = w.user_id
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY cr.created_at DESC"
+    if limit:
+        sql += f" LIMIT {int(limit)}"
+
+    with get_conn() as conn:
+        return conn.execute(sql, params).fetchall()
+
+
 # ──────────────────────────────────────────
 # List + input
 # ──────────────────────────────────────────
@@ -74,36 +115,62 @@ def _hapus_foto(nama_file: str | None):
 def index():
     user = get_current_user()
     bisa_edit = has_permission("edit_check_retur")
+    f = _ambil_filter_args()
 
-    q = request.args.get("q", "").strip()
+    rows = _query_rows(f["q"], f["artikel"], f["kondisi"])
+
     with get_conn() as conn:
-        if q:
-            like = f"%{q}%"
-            rows = conn.execute("""
-                SELECT cr.*, w.nama as dicek_oleh_nama
-                FROM check_retur cr
-                LEFT JOIN whitelist w ON cr.dicek_oleh = w.user_id
-                WHERE cr.no_surat ILIKE ? OR cr.nama_artikel ILIKE ?
-                   OR cr.kode_artikel::text ILIKE ? OR cr.serial_number ILIKE ?
-                ORDER BY cr.created_at DESC
-            """, (like, like, like, like)).fetchall()
-        else:
-            rows = conn.execute("""
-                SELECT cr.*, w.nama as dicek_oleh_nama
-                FROM check_retur cr
-                LEFT JOIN whitelist w ON cr.dicek_oleh = w.user_id
-                ORDER BY cr.created_at DESC
-                LIMIT 200
-            """).fetchall()
-
-        artikel_list = conn.execute(
-            "SELECT kode, nama FROM artikel ORDER BY nama"
-        ).fetchall()
+        artikel_list = conn.execute("SELECT kode, nama FROM artikel ORDER BY nama").fetchall()
 
     return render_template("check_retur.html",
         user=user, rows=rows, bisa_edit=bisa_edit,
-        artikel_list=artikel_list, q=q,
+        artikel_list=artikel_list, **f,
     )
+
+
+@check_retur_bp.route("/download/excel")
+@login_required
+def download_excel():
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+
+    f = _ambil_filter_args()
+    rows = _query_rows(f["q"], f["artikel"], f["kondisi"], limit=None)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Check Retur"
+
+    # Sengaja TANPA kolom foto -- biar file Excel-nya kecil & ringan.
+    headers = ["No Surat", "Nama Artikel", "Kode Artikel", "Serial Number",
+               "Kondisi", "Keterangan", "Dicek Oleh", "Tanggal"]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+
+    for r in rows:
+        ws.append([
+            r["no_surat"] or "",
+            r["nama_artikel"],
+            r["kode_artikel"],
+            r["serial_number"] or "",
+            (r["kondisi"] or "").upper(),
+            r["keterangan"] or "",
+            r["dicek_oleh_nama"] or "",
+            r["created_at"].strftime("%Y-%m-%d %H:%M") if r["created_at"] else "",
+        ])
+
+    lebar = [16, 26, 12, 16, 10, 34, 18, 17]
+    for i, w in enumerate(lebar, start=1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    nama_file = f"check-retur-{datetime.now(WIB).strftime('%Y%m%d-%H%M')}.xlsx"
+    return send_file(buf, as_attachment=True, download_name=nama_file,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @check_retur_bp.route("/buat", methods=["POST"])
@@ -118,7 +185,8 @@ def buat():
     keterangan = request.form.get("keterangan", "").strip()
     foto = request.files.get("foto")
 
-    if not (no_surat and nama_artikel and kondisi in KONDISI_VALID):
+    # No Surat sekarang opsional -- gak semua barang retur ada surat jalannya.
+    if not (nama_artikel and kondisi in KONDISI_VALID):
         return redirect(url_for("check_retur.index"))
 
     kode_artikel = int(kode_artikel_str) if kode_artikel_str.isdigit() else None
@@ -151,7 +219,7 @@ def edit(cr_id):
     hapus_foto_lama = request.form.get("hapus_foto") == "on"
     foto = request.files.get("foto")
 
-    if not (no_surat and nama_artikel and kondisi in KONDISI_VALID):
+    if not (nama_artikel and kondisi in KONDISI_VALID):
         return redirect(url_for("check_retur.index"))
 
     kode_artikel = int(kode_artikel_str) if kode_artikel_str.isdigit() else None
