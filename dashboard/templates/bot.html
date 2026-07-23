@@ -3,10 +3,17 @@
 {% block page_title %}Bot{% endblock %}
 
 {% block extra_style %}
-.bot-tabs{display:flex;gap:4px;margin-bottom:22px;border-bottom:1px solid var(--border)}
-.bot-tab{padding:10px 16px;font-size:13.5px;font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:6px}
-.bot-tab.active{color:var(--primary);border-color:var(--primary)}
-.bot-tab:hover{color:var(--text)}
+.bot-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:26px}
+@media(max-width:700px){.bot-card-grid{grid-template-columns:1fr}}
+.bot-nav-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:box-shadow .2s,transform .15s,border-color .2s;position:relative}
+.bot-nav-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.bot-nav-card.active{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.bot-card-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.bot-card-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;letter-spacing:.01em}
+.bot-card-num{font-family:var(--font-display);font-size:28px;font-weight:800;line-height:1}
+
+.bot-panel{animation:panelIn .18s ease}
+@keyframes panelIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 .chat-list{display:flex;flex-direction:column;gap:8px}
 .chat-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);transition:background .15s}
@@ -34,99 +41,138 @@
 {% endblock %}
 
 {% block content %}
-<div class="bot-tabs">
-    <a href="/bot/?tab=chat" class="bot-tab {% if tab=='chat' %}active{% endif %}">{{ icons.i('message', 14) }} Live Chat</a>
-    <a href="/bot/?tab=grup" class="bot-tab {% if tab=='grup' %}active{% endif %}">{{ icons.i('users', 14) }} Grup</a>
+<div class="bot-card-grid">
+    <div class="bot-nav-card active" id="navChat" onclick="botSwitch('Chat', this)">
+        <div class="bot-card-icon" style="background:var(--primary-light);color:var(--primary)">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="8" width="14" height="11" rx="3"/>
+                <circle cx="9.5" cy="13.3" r="1.15" fill="currentColor" stroke="none"/>
+                <circle cx="14.5" cy="13.3" r="1.15" fill="currentColor" stroke="none"/>
+                <path d="M9.5 16.5h5"/>
+                <path d="M12 8V4.5"/>
+                <circle cx="12" cy="3" r="1.3" fill="currentColor" stroke="none"/>
+                <path d="M2.5 12.5h2.5"/>
+                <path d="M19 12.5h2.5"/>
+            </svg>
+        </div>
+        <div class="bot-card-label">Live Chat</div>
+        <div class="bot-card-num" style="color:var(--primary)">{{ threads|length }}</div>
+    </div>
+    <div class="bot-nav-card" id="navGrup" onclick="botSwitch('Grup', this)">
+        <div class="bot-card-icon" style="background:var(--success-bg);color:var(--success)">{{ icons.i('users', 17) }}</div>
+        <div class="bot-card-label">Grup</div>
+        <div class="bot-card-num" style="color:var(--success)">{{ groups|length }}</div>
+    </div>
     {% if bisa_config %}
-    <a href="/bot/?tab=config" class="bot-tab {% if tab=='config' %}active{% endif %}">{{ icons.i('settings', 14) }} Konfigurasi</a>
+    <div class="bot-nav-card" id="navConfig" onclick="botSwitch('Config', this)">
+        <div class="bot-card-icon" style="background:var(--warning-bg);color:var(--warning)">{{ icons.i('settings', 17) }}</div>
+        <div class="bot-card-label">Konfigurasi</div>
+        <div class="bot-card-num" style="color:var(--warning)">{{ komplain_keywords|length + auto_reply_keywords|length }}</div>
+    </div>
     {% endif %}
 </div>
 
-{% if tab == 'chat' %}
-<div class="chat-list">
-    {% for t in threads %}
-    <a href="/bot/chat/{{ t.telegram_user_id }}" class="chat-item">
-        <div class="chat-avatar">{{ (t.nama_pengirim or '?')[0].upper() }}</div>
-        <div class="chat-info">
-            <div class="chat-name">{{ t.nama_pengirim or t.telegram_user_id }}</div>
-            <div class="chat-preview">{% if t.arah == 'keluar' %}Kamu: {% endif %}{{ t.isi_pesan }}</div>
-        </div>
-        <div class="chat-time">{{ t.created_at.strftime('%d/%m %H:%M') }}</div>
-    </a>
-    {% else %}
-    <div class="card"><div class="empty-state">{{ icons.i('message', 30) }}<div class="mt-2">Belum ada chat masuk</div></div></div>
-    {% endfor %}
-</div>
-{% endif %}
-
-{% if tab == 'grup' %}
-<div class="card" style="overflow:hidden">
-    {% for g in groups %}
-    <div class="grup-item">
-        <span class="grup-name">{{ g.nama_grup }}<div class="text-muted text-xs">{{ g.chat_id }}</div></span>
-        {% if bisa_config %}
-        <form method="POST" action="/bot/grup/{{ g.chat_id }}/tipe">
-            <select name="tipe" class="form-select grup-select" onchange="this.form.submit()">
-                <option value="internal" {% if g.tipe == 'internal' %}selected{% endif %}>Internal</option>
-                <option value="kasir" {% if g.tipe == 'kasir' %}selected{% endif %}>Kasir</option>
-            </select>
-        </form>
-        {% else %}
-        <span class="grup-badge {{ g.tipe }}">{{ g.tipe|title }}</span>
-        {% endif %}
-    </div>
-    {% else %}
-    <div class="empty-state">{{ icons.i('users', 30) }}<div class="mt-2">Belum ada grup tercatat — nanti otomatis muncul begitu ada pesan masuk dari grup</div></div>
-    {% endfor %}
-</div>
-{% endif %}
-
-{% if tab == 'config' and bisa_config %}
-<div class="grid-2" style="align-items:start">
-    <div class="card p-5">
-        <div class="font-bold mb-2" style="display:flex;align-items:center;gap:8px">{{ icons.i('alert-triangle', 15) }} Keyword Deteksi Komplain</div>
-        <div class="text-muted text-sm mb-3">Pesan dianggap komplain kalau SEMUA keyword di bawah ini ada di dalamnya.</div>
-        <div class="mb-3">
-            {% for k in komplain_keywords %}
-            <span class="keyword-chip">{{ k.keyword }}
-                <form method="POST" action="/bot/keyword/komplain/hapus/{{ k.id }}" style="display:inline">
-                    <button type="submit" title="Hapus">✕</button>
-                </form>
-            </span>
-            {% else %}
-            <div class="text-muted text-sm">Belum ada keyword.</div>
-            {% endfor %}
-        </div>
-        <form method="POST" action="/bot/keyword/komplain/tambah" class="flex gap-2">
-            <input type="text" name="keyword" class="form-control" placeholder="Tambah keyword..." required>
-            <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
-        </form>
-    </div>
-
-    <div class="card p-5">
-        <div class="font-bold mb-2" style="display:flex;align-items:center;gap:8px">{{ icons.i('zap', 15) }} Auto-Reply Komplain</div>
-        <div class="text-muted text-sm mb-3">Kalau isi komplain yang masuk mengandung keyword ini, bot otomatis bales.</div>
-        <div class="mb-3">
-            {% for ar in auto_reply_keywords %}
-            <div class="ar-item">
-                <div>
-                    <b class="text-sm">{{ ar.keyword }}</b>
-                    <div class="text-muted text-xs mt-1">{{ ar.balasan }}</div>
-                </div>
-                <form method="POST" action="/bot/keyword/auto-reply/hapus/{{ ar.id }}">
-                    <button type="submit" class="btn btn-danger-soft btn-xs">Hapus</button>
-                </form>
+<!-- Panel: Live Chat -->
+<div id="panelChat" class="bot-panel">
+    <div class="chat-list">
+        {% for t in threads %}
+        <a href="/bot/chat/{{ t.telegram_user_id }}" class="chat-item">
+            <div class="chat-avatar">{{ (t.nama_pengirim or '?')[0].upper() }}</div>
+            <div class="chat-info">
+                <div class="chat-name">{{ t.nama_pengirim or t.telegram_user_id }}</div>
+                <div class="chat-preview">{% if t.arah == 'keluar' %}Kamu: {% endif %}{{ t.isi_pesan }}</div>
             </div>
+            <div class="chat-time">{{ t.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+        </a>
+        {% else %}
+        <div class="card"><div class="empty-state">{{ icons.i('message', 30) }}<div class="mt-2">Belum ada chat masuk</div></div></div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Panel: Grup -->
+<div id="panelGrup" class="bot-panel" style="display:none">
+    <div class="card" style="overflow:hidden">
+        {% for g in groups %}
+        <div class="grup-item">
+            <span class="grup-name">{{ g.nama_grup }}<div class="text-muted text-xs">{{ g.chat_id }}</div></span>
+            {% if bisa_config %}
+            <form method="POST" action="/bot/grup/{{ g.chat_id }}/tipe">
+                <select name="tipe" class="form-select grup-select" onchange="this.form.submit()">
+                    <option value="internal" {% if g.tipe == 'internal' %}selected{% endif %}>Internal</option>
+                    <option value="kasir" {% if g.tipe == 'kasir' %}selected{% endif %}>Kasir</option>
+                </select>
+            </form>
             {% else %}
-            <div class="text-muted text-sm">Belum ada auto-reply.</div>
-            {% endfor %}
+            <span class="grup-badge {{ g.tipe }}">{{ g.tipe|title }}</span>
+            {% endif %}
         </div>
-        <form method="POST" action="/bot/keyword/auto-reply/tambah">
-            <input type="text" name="keyword" class="form-control mb-2" placeholder="Keyword trigger..." required>
-            <textarea name="balasan" class="form-control mb-2" placeholder="Balasan otomatis..." required></textarea>
-            <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
-        </form>
+        {% else %}
+        <div class="empty-state">{{ icons.i('users', 30) }}<div class="mt-2">Belum ada grup tercatat — nanti otomatis muncul begitu ada pesan masuk dari grup</div></div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Panel: Konfigurasi -->
+{% if bisa_config %}
+<div id="panelConfig" class="bot-panel" style="display:none">
+    <div class="grid-2" style="align-items:start">
+        <div class="card p-5">
+            <div class="font-bold mb-2" style="display:flex;align-items:center;gap:8px">{{ icons.i('alert-triangle', 15) }} Keyword Deteksi Komplain</div>
+            <div class="text-muted text-sm mb-3">Pesan dianggap komplain kalau SEMUA keyword di bawah ini ada di dalamnya.</div>
+            <div class="mb-3">
+                {% for k in komplain_keywords %}
+                <span class="keyword-chip">{{ k.keyword }}
+                    <form method="POST" action="/bot/keyword/komplain/hapus/{{ k.id }}" style="display:inline">
+                        <button type="submit" title="Hapus">✕</button>
+                    </form>
+                </span>
+                {% else %}
+                <div class="text-muted text-sm">Belum ada keyword.</div>
+                {% endfor %}
+            </div>
+            <form method="POST" action="/bot/keyword/komplain/tambah" class="flex gap-2">
+                <input type="text" name="keyword" class="form-control" placeholder="Tambah keyword..." required>
+                <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
+            </form>
+        </div>
+
+        <div class="card p-5">
+            <div class="font-bold mb-2" style="display:flex;align-items:center;gap:8px">{{ icons.i('zap', 15) }} Auto-Reply Komplain</div>
+            <div class="text-muted text-sm mb-3">Kalau isi komplain yang masuk mengandung keyword ini, bot otomatis bales.</div>
+            <div class="mb-3">
+                {% for ar in auto_reply_keywords %}
+                <div class="ar-item">
+                    <div>
+                        <b class="text-sm">{{ ar.keyword }}</b>
+                        <div class="text-muted text-xs mt-1">{{ ar.balasan }}</div>
+                    </div>
+                    <form method="POST" action="/bot/keyword/auto-reply/hapus/{{ ar.id }}">
+                        <button type="submit" class="btn btn-danger-soft btn-xs">Hapus</button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="text-muted text-sm">Belum ada auto-reply.</div>
+                {% endfor %}
+            </div>
+            <form method="POST" action="/bot/keyword/auto-reply/tambah">
+                <input type="text" name="keyword" class="form-control mb-2" placeholder="Keyword trigger..." required>
+                <textarea name="balasan" class="form-control mb-2" placeholder="Balasan otomatis..." required></textarea>
+                <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function botSwitch(name, el) {
+    document.querySelectorAll('.bot-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.bot-nav-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('panel' + name).style.display = '';
+    el.classList.add('active');
+}
+</script>
 {% endblock %}

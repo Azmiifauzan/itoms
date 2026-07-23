@@ -34,27 +34,18 @@ def _kirim_telegram(chat_id: int, text: str) -> bool:
 @login_required
 def index():
     user = get_current_user()
-    tab = request.args.get("tab", "chat")
     bisa_config = has_permission("config_bot")
 
-    context = {"user": user, "tab": tab, "bisa_config": bisa_config}
+    threads = get_live_chat_threads()
+    groups = get_bot_groups()
+    komplain_keywords = get_komplain_keywords_full() if bisa_config else []
+    auto_reply_keywords = get_auto_reply_keywords() if bisa_config else []
 
-    if tab == "grup":
-        context["groups"] = get_bot_groups()
-    elif tab == "config":
-        if not bisa_config:
-            tab = "chat"
-            context["tab"] = "chat"
-            context["threads"] = get_live_chat_threads()
-        else:
-            context["komplain_keywords"] = get_komplain_keywords_full()
-            context["auto_reply_keywords"] = get_auto_reply_keywords()
-    else:
-        tab = "chat"
-        context["tab"] = "chat"
-        context["threads"] = get_live_chat_threads()
-
-    return render_template("bot.html", **context)
+    return render_template("bot.html",
+        user=user, bisa_config=bisa_config,
+        threads=threads, groups=groups,
+        komplain_keywords=komplain_keywords, auto_reply_keywords=auto_reply_keywords,
+    )
 
 
 @bot_bp.route("/chat/<int:telegram_user_id>")
@@ -90,49 +81,49 @@ def chat_kirim(telegram_user_id):
 @login_required
 def grup_tipe(chat_id):
     if not has_permission("config_bot"):
-        return redirect(url_for("bot.index", tab="grup"))
+        return redirect(url_for("bot.index"))
     tipe = request.form.get("tipe", "internal")
     if tipe in ("internal", "kasir"):
         update_bot_group_tipe(chat_id, tipe)
-    return redirect(url_for("bot.index", tab="grup"))
+    return redirect(url_for("bot.index"))
 
 
 @bot_bp.route("/keyword/komplain/tambah", methods=["POST"])
 @login_required
 def keyword_komplain_tambah():
     if not has_permission("config_bot"):
-        return redirect(url_for("bot.index", tab="config"))
+        return redirect(url_for("bot.index"))
     kw = request.form.get("keyword", "").strip().upper()
     if kw:
         add_komplain_keyword(kw)
-    return redirect(url_for("bot.index", tab="config"))
+    return redirect(url_for("bot.index"))
 
 
 @bot_bp.route("/keyword/komplain/hapus/<int:kid>", methods=["POST"])
 @login_required
 def keyword_komplain_hapus(kid):
     if not has_permission("config_bot"):
-        return redirect(url_for("bot.index", tab="config"))
+        return redirect(url_for("bot.index"))
     delete_komplain_keyword(kid)
-    return redirect(url_for("bot.index", tab="config"))
+    return redirect(url_for("bot.index"))
 
 
 @bot_bp.route("/keyword/auto-reply/tambah", methods=["POST"])
 @login_required
 def keyword_auto_reply_tambah():
     if not has_permission("config_bot"):
-        return redirect(url_for("bot.index", tab="config"))
+        return redirect(url_for("bot.index"))
     kw = request.form.get("keyword", "").strip()
     balasan = request.form.get("balasan", "").strip()
     if kw and balasan:
         add_auto_reply_keyword(kw, balasan)
-    return redirect(url_for("bot.index", tab="config"))
+    return redirect(url_for("bot.index"))
 
 
 @bot_bp.route("/keyword/auto-reply/hapus/<int:kid>", methods=["POST"])
 @login_required
 def keyword_auto_reply_hapus(kid):
     if not has_permission("config_bot"):
-        return redirect(url_for("bot.index", tab="config"))
+        return redirect(url_for("bot.index"))
     delete_auto_reply_keyword(kid)
-    return redirect(url_for("bot.index", tab="config"))
+    return redirect(url_for("bot.index"))

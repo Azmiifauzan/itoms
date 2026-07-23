@@ -31,7 +31,7 @@
     <div class="bubble {{ m.arah }}">
         {{ m.isi_pesan }}
         <div class="bubble-time">
-            {{ m.created_at.strftime('%d/%m %H:%M') }}
+            {{ m.created_at.strftime('%d/%m/%Y %H:%M') }}
             {% if m.arah == 'keluar' and m.dibalas_oleh %} — {{ m.dibalas_oleh }}{% endif %}
         </div>
     </div>
