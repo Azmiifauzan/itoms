@@ -55,7 +55,6 @@ def get_outlet_list() -> list[dict]:
         SELECT "Name"
         FROM "Member"."CM_Division"
         ORDER BY "Name"
-        LIMIT 1;
     """
     conn = None
     try:
