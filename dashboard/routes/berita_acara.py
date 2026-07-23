@@ -91,6 +91,27 @@ def index():
     bisa_edit = has_permission("edit_berita_acara")
     manager_it = _get_manager_it()
 
+    q = request.args.get("q", "").strip()
+    outlet_filter = request.args.get("outlet", "").strip()
+
+    where, params = [], []
+    if q:
+        like = f"%{q}%"
+        where.append('(ba.kode_outlet ILIKE ? OR ba.nama_outlet ILIKE ? OR ba.nama_unit ILIKE ?)')
+        params += [like, like, like]
+    if outlet_filter:
+        where.append("ba.nama_outlet = ?")
+        params.append(outlet_filter)
+
+    sql = """
+        SELECT ba.*, w.nama as dibuat_oleh_nama
+        FROM berita_acara ba
+        LEFT JOIN whitelist w ON ba.dibuat_oleh = w.user_id
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY ba.created_at DESC LIMIT 200"
+
     with get_conn() as conn:
         rows = conn.execute("""
             SELECT ba.*, w.nama as dibuat_oleh_nama
