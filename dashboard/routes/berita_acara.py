@@ -27,10 +27,11 @@ from werkzeug.utils import secure_filename
 from weasyprint import HTML
 from dashboard.auth import login_required, get_current_user, has_permission
 from db.local import get_conn
-from db.hris import get_outlet_list
+from db.hris import get_company_list, get_outlet_list, search_employee
 
 berita_acara_bp = Blueprint("berita_acara", __name__, url_prefix="/berita-acara")
 
+COMPANY_MODE_OFFICE = {42, 36}
 WIB = timezone(timedelta(hours=7))
 
 BASE_PATH = os.environ.get("STORAGE_BASE_PATH", "/app/data-internal")
@@ -91,27 +92,6 @@ def index():
     bisa_edit = has_permission("edit_berita_acara")
     manager_it = _get_manager_it()
 
-    q = request.args.get("q", "").strip()
-    outlet_filter = request.args.get("outlet", "").strip()
-
-    where, params = [], []
-    if q:
-        like = f"%{q}%"
-        where.append('(ba.kode_outlet ILIKE ? OR ba.nama_outlet ILIKE ? OR ba.nama_unit ILIKE ?)')
-        params += [like, like, like]
-    if outlet_filter:
-        where.append("ba.nama_outlet = ?")
-        params.append(outlet_filter)
-
-    sql = """
-        SELECT ba.*, w.nama as dibuat_oleh_nama
-        FROM berita_acara ba
-        LEFT JOIN whitelist w ON ba.dibuat_oleh = w.user_id
-    """
-    if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY ba.created_at DESC LIMIT 200"
-
     with get_conn() as conn:
         rows = conn.execute("""
             SELECT ba.*, w.nama as dibuat_oleh_nama
@@ -122,22 +102,58 @@ def index():
         """).fetchall()
         artikel_list = conn.execute("SELECT nama FROM artikel ORDER BY nama").fetchall()
 
-    outlet_list = get_outlet_list()
+    company_list = get_company_list()
+
+    company_id_str = request.args.get("company_id", "").strip()
+    selected_company_id = int(company_id_str) if company_id_str.isdigit() else None
+    mode = None
+    outlet_list = []
+    nama_pt = None
+    if selected_company_id:
+        mode = "office" if selected_company_id in COMPANY_MODE_OFFICE else "outlet"
+        if mode == "outlet":
+            outlet_list = get_outlet_list(selected_company_id)
+        match = next((c for c in company_list if c["company_id"] == selected_company_id), None)
+        nama_pt = match["nama_pt"] if match else None
 
     return render_template("berita_acara.html",
         user=user, rows=rows, bisa_edit=bisa_edit,
         artikel_list=artikel_list, manager_it=manager_it,
         user_punya_ttd=bool(user.get("signature_path")),
-        outlet_list=outlet_list,
+        company_list=company_list, selected_company_id=selected_company_id,
+        mode=mode, outlet_list=outlet_list, nama_pt=nama_pt,
     )
+
+
+@berita_acara_bp.route("/search-karyawan")
+@login_required
+def search_karyawan():
+    from flask import jsonify
+    q = request.args.get("q", "").strip()
+    company_id = request.args.get("company_id", type=int)
+    if not q or not company_id or len(q) < 2:
+        return jsonify([])
+    return jsonify(search_employee(q, company_id))
 
 
 @berita_acara_bp.route("/buat", methods=["POST"])
 @login_required
 def buat():
     user = get_current_user()
-    kode_outlet = request.form.get("kode_outlet", "").strip()
-    nama_outlet = request.form.get("nama_outlet", "").strip()
+    company_id_str = request.form.get("company_id", "").strip()
+    company_id = int(company_id_str) if company_id_str.isdigit() else None
+    nama_pt = request.form.get("nama_pt", "").strip()
+    mode = "office" if company_id in COMPANY_MODE_OFFICE else "outlet"
+
+    if mode == "office":
+        nama_karyawan = request.form.get("nama_karyawan", "").strip()
+        divisi = request.form.get("divisi", "").strip()
+        kode_outlet = ""
+        nama_outlet = f"{nama_karyawan} — {divisi}" if divisi else nama_karyawan
+    else:
+        kode_outlet = request.form.get("kode_outlet", "").strip()
+        nama_outlet = request.form.get("nama_outlet", "").strip()
+
     tanggal_kejadian = request.form.get("tanggal_kejadian", "").strip()
     nama_unit = request.form.get("nama_unit", "").strip()
     penyebab_list = [p.strip() for p in request.form.getlist("penyebab[]") if p.strip()]
@@ -145,7 +161,7 @@ def buat():
     nama_outlet_signer = request.form.get("nama_outlet_signer", "").strip()
     outlet_signature = request.files.get("outlet_signature")
 
-    if not (kode_outlet and nama_outlet and tanggal_kejadian and nama_unit and nama_outlet_signer):
+    if not (nama_outlet and tanggal_kejadian and nama_unit and nama_outlet_signer):
         return redirect(url_for("berita_acara.index"))
 
     outlet_sig_file = _simpan_gambar(outlet_signature, OUTLET_SIG_DIR, prefix="outlet_")
@@ -156,13 +172,15 @@ def buat():
         cur = conn.execute("""
             INSERT INTO berita_acara
                 (kode_outlet, nama_outlet, tanggal_kejadian, nama_unit, penyebab, sparepart,
-                 nama_outlet_signer, outlet_signature_path, support_id, manager_it_id, dibuat_oleh)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 nama_outlet_signer, outlet_signature_path, support_id, manager_it_id, dibuat_oleh,
+                 company_id, nama_pt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
         """, (kode_outlet, nama_outlet, tanggal_kejadian, nama_unit,
               Json(penyebab_list), Json(sparepart_list),
               nama_outlet_signer, outlet_sig_file, user["user_id"],
-              manager_it["user_id"] if manager_it else None, user["user_id"]))
+              manager_it["user_id"] if manager_it else None, user["user_id"],
+              company_id, nama_pt))
         ba_id = cur.fetchone()["id"]
         conn.commit()
 
@@ -226,6 +244,23 @@ def hapus(ba_id):
                 if os.path.isfile(p):
                     os.remove(p)
         conn.execute("DELETE FROM berita_acara WHERE id = ?", (ba_id,))
+        conn.commit()
+    return redirect(url_for("berita_acara.index"))
+
+@berita_acara_bp.route("/<int:ba_id>/toggle-rdo", methods=["POST"])
+@login_required
+def toggle_rdo(ba_id):
+    with get_conn() as conn:
+        conn.execute("UPDATE berita_acara SET rdo_dibuat = NOT rdo_dibuat WHERE id = ?", (ba_id,))
+        conn.commit()
+    return redirect(url_for("berita_acara.index"))
+
+
+@berita_acara_bp.route("/<int:ba_id>/toggle-gudang", methods=["POST"])
+@login_required
+def toggle_gudang(ba_id):
+    with get_conn() as conn:
+        conn.execute("UPDATE berita_acara SET dikirim_gudang = NOT dikirim_gudang WHERE id = ?", (ba_id,))
         conn.commit()
     return redirect(url_for("berita_acara.index"))
 

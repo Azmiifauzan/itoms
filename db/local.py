@@ -223,6 +223,10 @@ def init_db():
             "ALTER TABLE check_retur ADD COLUMN IF NOT EXISTS serial_number TEXT",
             "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS signature_path TEXT",
             "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS is_manager_it BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE berita_acara ADD COLUMN IF NOT EXISTS company_id INTEGER",
+            "ALTER TABLE berita_acara ADD COLUMN IF NOT EXISTS nama_pt TEXT",
+            "ALTER TABLE berita_acara ADD COLUMN IF NOT EXISTS rdo_dibuat BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE berita_acara ADD COLUMN IF NOT EXISTS dikirim_gudang BOOLEAN NOT NULL DEFAULT FALSE",
         ]
         for stmt in migrasi:
             try:
