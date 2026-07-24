@@ -27,7 +27,7 @@ from werkzeug.utils import secure_filename
 from weasyprint import HTML
 from dashboard.auth import login_required, get_current_user, has_permission
 from db.local import get_conn
-from db.hris import get_company_list, get_outlet_list, search_employee
+from db.hris import get_outlet_list, search_employee
 
 berita_acara_bp = Blueprint("berita_acara", __name__, url_prefix="/berita-acara")
 
